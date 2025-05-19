@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Witness Style Panel</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #viewer {
+      width: 80vw;
+      height: 45vh;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #viewer img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .panel-container {
+      display: flex;
+      gap: 20px;
+    }
+    canvas {
+      background: #222;
+      border: 2px solid white;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewer"></div>
+  <div class="panel-container">
+    <canvas width="150" height="150"></canvas>
+    <canvas width="150" height="150"></canvas>
+    <canvas width="150" height="150"></canvas>
+  </div>
+
+  <script>
+    const canvases = document.querySelectorAll("canvas");
+    const viewer = document.getElementById("viewer");
+    const images = [
+      "image1.jpeg",
+      "image2.png",
+      "image3.png"
+    ];
+
+    const solutions = [
+      { start: { x: 20, y: 130 }, end: { x: 130, y: 20 } },
+      { start: { x: 20, y: 20 }, end: { x: 130, y: 130 } },
+      { start: { x: 75, y: 20 }, end: { x: 75, y: 130 } }
+    ];
+
+    let isDrawing = false;
+    let currentCanvas = null;
+
+    function drawPanel(ctx, sol, highlight = false) {
+      ctx.strokeStyle = highlight ? "cyan" : "#555";
+      ctx.lineWidth = highlight ? 5 : 2;
+      ctx.beginPath();
+      ctx.arc(sol.start.x, sol.start.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = highlight ? "cyan" : "#555";
+      ctx.fill();
+      ctx.moveTo(sol.start.x, sol.start.y);
+      ctx.lineTo(sol.end.x, sol.end.y);
+      ctx.stroke();
+    }
+
+    function clearAllCanvases() {
+      canvases.forEach((c, i) => {
+        const ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, c.width, c.height);
+        drawPanel(ctx, solutions[i]);
+      });
+    }
+
+    clearAllCanvases();
+
+    canvases.forEach((canvas, index) => {
+      const ctx = canvas.getContext("2d");
+      const sol = solutions[index];
+      let startX, startY;
+
+      canvas.addEventListener("mousedown", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const dx = x - sol.start.x;
+        const dy = y - sol.start.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 10) return;
+
+        clearAllCanvases();
+        currentCanvas = canvas;
+        startX = x;
+        startY = y;
+        isDrawing = true;
+      });
+
+      canvas.addEventListener("mousemove", (e) => {
+        if (!isDrawing || currentCanvas !== canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawPanel(ctx, sol);
+
+        ctx.strokeStyle = "cyan";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(sol.start.x, sol.start.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      });
+
+      canvas.addEventListener("mouseup", (e) => {
+        if (!isDrawing || currentCanvas !== canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        isDrawing = false;
+
+        const dx = x - sol.end.x;
+        const dy = y - sol.end.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 10) {
+          clearAllCanvases();
+          return;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawPanel(ctx, sol, true);
+
+        const img = document.createElement("img");
+        img.src = images[index];
+        viewer.innerHTML = "";
+        viewer.appendChild(img);
+      });
+
+      canvas.addEventListener("mouseleave", () => {
+        if (isDrawing) {
+          isDrawing = false;
+          clearAllCanvases();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
