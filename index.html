@@ -7,163 +7,154 @@
 <style>
   body {
     margin: 0; padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100vh;
     background: #111;
     color: white;
-  }
-  #video-container {
-    margin-top: 20px;
-    width: 640px;
-    max-width: 90vw;
-    height: 360px;
-    background: black;
-  }
-  #video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-  #panels {
-    margin-top: 20px;
     display: flex;
-    gap: 10px;
-    width: 90vw;
-    max-width: 640px;
     justify-content: center;
+    align-items: flex-start;
+    height: 100vh;
+    gap: 10px;
+    user-select: none;
   }
   .panel {
     position: relative;
-    width: 30%;
+    width: 30vw;
+    max-width: 200px;
     aspect-ratio: 1 / 1;
-    background: #222;
-    border-radius: 8px;
-    user-select: none;
-    touch-action: none;
+    background-size: cover;
+    background-position: center;
+    border-radius: 10px;
+    touch-action: none; /* これ重要：スクロール防止 */
+    box-shadow: 0 0 8px #000;
   }
   canvas {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    border-radius: 8px;
+    border-radius: 10px;
+    pointer-events: none; /* これでキャンバスはイベント受けない */
+  }
+  .draw-canvas {
+    pointer-events: auto; /* 線を引くためにこのキャンバスだけ有効にする */
+  }
+  /* スタート丸 */
+  .start-circle {
+    position: absolute;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: white;
+    top: 15px;
+    left: 15px;
+    box-shadow: 0 0 4px #fff;
+    pointer-events: none; /* タッチは通す */
   }
 </style>
 </head>
 <body>
 
-<div id="video-container">
-  <video id="video" controls autoplay muted>
-    <source src="image1.jpeg" type="image/jpeg">
-    Your browser does not support the video tag.
-  </video>
+<div class="panel" id="panel1" style="background-image: url('image1.jpeg');">
+  <div class="start-circle"></div>
+  <canvas class="draw-canvas"></canvas>
 </div>
-
-<div id="panels">
-  <div class="panel" data-video="image1.jpeg"><canvas></canvas></div>
-  <div class="panel" data-video="image2.png"><canvas></canvas></div>
-  <div class="panel" data-video="image3.png"><canvas></canvas></div>
+<div class="panel" id="panel2" style="background-image: url('image2.png');">
+  <div class="start-circle"></div>
+  <canvas class="draw-canvas"></canvas>
+</div>
+<div class="panel" id="panel3" style="background-image: url('image3.png');">
+  <div class="start-circle"></div>
+  <canvas class="draw-canvas"></canvas>
 </div>
 
 <script>
 (() => {
   const panels = document.querySelectorAll('.panel');
-  const video = document.getElementById('video');
-
-  let currentPanel = null;
-  let isDrawing = false;
+  let drawing = false;
   let ctx = null;
-  let startPoint = null;
-  const allowedStart = [{x: 20, y: 20}, {x: 20, y: 20}, {x: 20, y: 20}]; //例：スタート丸の座標（各パネル同じ）
+  let lastPos = null;
+  let currentCanvas = null;
 
-  // 初期描画で薄い線とスタート丸を描く関数
-  function drawInitialLine(panel) {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(20, 20);
-    ctx.lineTo(canvas.width - 20, 20);
-    ctx.stroke();
+  // canvasサイズ合わせ（デバイスピクセル比考慮）
+  function resizeCanvas(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    const context = canvas.getContext('2d');
+    context.scale(devicePixelRatio, devicePixelRatio);
+    return context;
+  }
 
-    // スタートの丸
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(20, 20, 8, 0, Math.PI*2);
-    ctx.fill();
+  // 始点近くかチェック（スタート丸の中心は左:15, 上:15, 半径12）
+  function isNearStart(pos, panel) {
+    const rect = panel.getBoundingClientRect();
+    const x = pos.x - rect.left;
+    const y = pos.y - rect.top;
+    const dx = x - 15;
+    const dy = y - 15;
+    return Math.sqrt(dx*dx + dy*dy) <= 12;
+  }
+
+  // 位置取得（マウス/タッチ）
+  function getPos(e) {
+    if (e.touches && e.touches.length > 0) {
+      return {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    } else {
+      return {x: e.clientX, y: e.clientY};
+    }
   }
 
   panels.forEach(panel => {
     const canvas = panel.querySelector('canvas');
-    canvas.width = canvas.clientWidth * devicePixelRatio;
-    canvas.height = canvas.clientHeight * devicePixelRatio;
-    ctx = canvas.getContext('2d');
-    ctx.scale(devicePixelRatio, devicePixelRatio);
-    drawInitialLine(panel);
+    ctx = resizeCanvas(canvas);
 
-    // タッチ・マウス共通の位置取得関数
-    function getPos(e) {
-      let rect = canvas.getBoundingClientRect();
-      let x, y;
-      if (e.touches) {
-        x = e.touches[0].clientX - rect.left;
-        y = e.touches[0].clientY - rect.top;
-      } else {
-        x = e.clientX - rect.left;
-        y = e.clientY - rect.top;
-      }
-      return {x, y};
-    }
+    // 線のスタイル設定
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
 
-    // 開始判定（スタート丸付近かどうか）
-    function isNearStart(pos) {
-      let dx = pos.x - 20;
-      let dy = pos.y - 20;
-      return Math.sqrt(dx*dx + dy*dy) < 15;
-    }
-
+    // 開始
     function startDraw(e) {
       e.preventDefault();
       const pos = getPos(e);
-      if (!isNearStart(pos)) return;
-      currentPanel = panel;
-      isDrawing = true;
+      if (!isNearStart(pos, panel)) return;
+      drawing = true;
+      currentCanvas = canvas;
       ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.scale(devicePixelRatio, devicePixelRatio);
+      ctx.lineWidth = 5;
       ctx.strokeStyle = 'white';
-      ctx.lineWidth = 6;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-      startPoint = pos;
+      const rect = canvas.getBoundingClientRect();
+      ctx.moveTo(pos.x - rect.left, pos.y - rect.top);
+      lastPos = pos;
     }
+    // 描画
     function draw(e) {
-      if (!isDrawing || currentPanel !== panel) return;
+      if (!drawing || currentCanvas !== canvas) return;
       e.preventDefault();
       const pos = getPos(e);
-      ctx.lineTo(pos.x, pos.y);
+      const rect = canvas.getBoundingClientRect();
+      ctx.lineTo(pos.x - rect.left, pos.y - rect.top);
       ctx.stroke();
+      lastPos = pos;
     }
+    // 終了
     function endDraw(e) {
-      if (!isDrawing || currentPanel !== panel) return;
+      if (!drawing || currentCanvas !== canvas) return;
       e.preventDefault();
-      isDrawing = false;
-      video.src = panel.dataset.video;
+      drawing = false;
+      currentCanvas = null;
     }
 
-    // イベント登録（タッチとマウス）
+    // イベント登録
     canvas.addEventListener('mousedown', startDraw);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', endDraw);
     canvas.addEventListener('mouseleave', endDraw);
 
-    canvas.addEventListener('touchstart', startDraw);
-    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchstart', startDraw, {passive:false});
+    canvas.addEventListener('touchmove', draw, {passive:false});
     canvas.addEventListener('touchend', endDraw);
+    canvas.addEventListener('touchcancel', endDraw);
   });
 })();
 </script>
