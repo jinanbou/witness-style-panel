@@ -1,181 +1,172 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Witness Style Panel</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      height: 100vh;
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-
-    #container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      max-width: 600px;
-      height: 100%;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-
-    #video-area {
-      width: 100%;
-      height: 40vh;
-      background-color: black;
-      margin-bottom: 10px;
-      position: relative;
-    }
-
-    #video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    #panels {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      gap: 10px;
-      flex-grow: 1;
-      overflow-y: auto;
-    }
-
-    canvas.panel {
-      background-color: #222;
-      touch-action: none;
-      width: 100%;
-      height: auto;
-      border: 2px solid white;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>The Witness風 パネル線引き</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    background: #111;
+    color: white;
+  }
+  #video-container {
+    margin-top: 20px;
+    width: 640px;
+    max-width: 90vw;
+    height: 360px;
+    background: black;
+  }
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  #panels {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    width: 90vw;
+    max-width: 640px;
+    justify-content: center;
+  }
+  .panel {
+    position: relative;
+    width: 30%;
+    aspect-ratio: 1 / 1;
+    background: #222;
+    border-radius: 8px;
+    user-select: none;
+    touch-action: none;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border-radius: 8px;
+  }
+</style>
 </head>
 <body>
-  <div id="container">
-    <div id="video-area">
-      <video id="video" controls></video>
-    </div>
-    <div id="panels">
-      <canvas class="panel" width="300" height="100"></canvas>
-      <canvas class="panel" width="300" height="100"></canvas>
-      <canvas class="panel" width="300" height="100"></canvas>
-    </div>
-  </div>
 
-  <script>
-    const video = document.getElementById("video");
-    const panels = document.querySelectorAll("canvas.panel");
+<div id="video-container">
+  <video id="video" controls autoplay muted>
+    <source src="image1.jpeg" type="image/jpeg">
+    Your browser does not support the video tag.
+  </video>
+</div>
 
-    const videos = [
-      "video1.mp4",
-      "video2.mp4",
-      "video3.mp4"
-    ];
+<div id="panels">
+  <div class="panel" data-video="image1.jpeg"><canvas></canvas></div>
+  <div class="panel" data-video="image2.png"><canvas></canvas></div>
+  <div class="panel" data-video="image3.png"><canvas></canvas></div>
+</div>
 
-    panels.forEach((canvas, index) => {
-      const ctx = canvas.getContext("2d");
+<script>
+(() => {
+  const panels = document.querySelectorAll('.panel');
+  const video = document.getElementById('video');
 
-      const start = { x: 20, y: 50 };
-      const end = { x: 280, y: 50 };
-      ctx.strokeStyle = "#666";
-      ctx.lineWidth = 4;
+  let currentPanel = null;
+  let isDrawing = false;
+  let ctx = null;
+  let startPoint = null;
+  const allowedStart = [{x: 20, y: 20}, {x: 20, y: 20}, {x: 20, y: 20}]; //例：スタート丸の座標（各パネル同じ）
+
+  // 初期描画で薄い線とスタート丸を描く関数
+  function drawInitialLine(panel) {
+    const canvas = panel.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(20, 20);
+    ctx.lineTo(canvas.width - 20, 20);
+    ctx.stroke();
+
+    // スタートの丸
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(20, 20, 8, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  panels.forEach(panel => {
+    const canvas = panel.querySelector('canvas');
+    canvas.width = canvas.clientWidth * devicePixelRatio;
+    canvas.height = canvas.clientHeight * devicePixelRatio;
+    ctx = canvas.getContext('2d');
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    drawInitialLine(panel);
+
+    // タッチ・マウス共通の位置取得関数
+    function getPos(e) {
+      let rect = canvas.getBoundingClientRect();
+      let x, y;
+      if (e.touches) {
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+      } else {
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+      }
+      return {x, y};
+    }
+
+    // 開始判定（スタート丸付近かどうか）
+    function isNearStart(pos) {
+      let dx = pos.x - 20;
+      let dy = pos.y - 20;
+      return Math.sqrt(dx*dx + dy*dy) < 15;
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      const pos = getPos(e);
+      if (!isNearStart(pos)) return;
+      currentPanel = panel;
+      isDrawing = true;
+      ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.arc(start.x, start.y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = "#666";
-      ctx.fill();
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
+      ctx.moveTo(pos.x, pos.y);
+      startPoint = pos;
+    }
+    function draw(e) {
+      if (!isDrawing || currentPanel !== panel) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
+    }
+    function endDraw(e) {
+      if (!isDrawing || currentPanel !== panel) return;
+      e.preventDefault();
+      isDrawing = false;
+      video.src = panel.dataset.video;
+    }
 
-      let drawing = false;
-      let hasDrawn = false;
+    // イベント登録（タッチとマウス）
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
 
-      const clearCanvas = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#666";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(start.x, start.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = "#666";
-        ctx.fill();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-      };
+    canvas.addEventListener('touchstart', startDraw);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', endDraw);
+  });
+})();
+</script>
 
-      const drawPath = (x, y) => {
-        ctx.strokeStyle = "#0f0";
-        ctx.lineWidth = 4;
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      };
-
-      const onDown = (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-        const dx = x - start.x;
-        const dy = y - start.y;
-        if (dx * dx + dy * dy < 100) {
-          drawing = true;
-          ctx.beginPath();
-          ctx.moveTo(start.x, start.y);
-        }
-      };
-
-      const onMove = (e) => {
-        if (!drawing) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-        drawPath(x, y);
-      };
-
-      const onUp = () => {
-        if (drawing) {
-          drawing = false;
-          hasDrawn = true;
-          panels.forEach((c) => {
-            if (c !== canvas) {
-              const ctx2 = c.getContext("2d");
-              ctx2.clearRect(0, 0, c.width, c.height);
-              ctx2.strokeStyle = "#666";
-              ctx2.lineWidth = 4;
-              ctx2.beginPath();
-              ctx2.arc(20, 50, 6, 0, Math.PI * 2);
-              ctx2.fillStyle = "#666";
-              ctx2.fill();
-              ctx2.moveTo(20, 50);
-              ctx2.lineTo(280, 50);
-              ctx2.stroke();
-            }
-          });
-          video.src = videos[index];
-          video.play();
-        }
-      };
-
-      canvas.addEventListener("mousedown", onDown);
-      canvas.addEventListener("mousemove", onMove);
-      canvas.addEventListener("mouseup", onUp);
-      canvas.addEventListener("mouseleave", onUp);
-
-      canvas.addEventListener("touchstart", onDown);
-      canvas.addEventListener("touchmove", onMove);
-      canvas.addEventListener("touchend", onUp);
-    });
-  </script>
 </body>
 </html>
