@@ -142,6 +142,8 @@
     if(panel.path.length < 2) return;
     ctx.strokeStyle = '#3ad';
     ctx.lineWidth = 6;
+    ctx.lineCap = 'round';   // ← 端を丸く
+    ctx.lineJoin = 'round';  // ← 角も丸く
     ctx.beginPath();
     ctx.moveTo(panel.path[0].x, panel.path[0].y);
     for(let i=1; i<panel.path.length; i++){
