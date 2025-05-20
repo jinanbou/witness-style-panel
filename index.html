@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Witness Style Panel with Central Screen</title>
+<title>反転sin波ガイド線付きパネル</title>
 <style>
   body {
     margin: 0; padding: 0;
@@ -48,11 +48,6 @@
     width: 100%; height: 100%;
     touch-action: none;
   }
-  /* Guide line style */
-  .guide-line {
-    stroke: #ccc;
-    stroke-width: 2;
-  }
 </style>
 </head>
 <body>
@@ -75,16 +70,22 @@
     canvas.width = rect.width;
     canvas.height = rect.height;
 
-    // Sin波ガイド生成（幅全体にθ=0〜2π、振幅は高さの1/8）
-    const w = canvas.width;
+    // ここで余白を設定（左右20px）
+    const marginX = 20;
+
+    const w = canvas.width - marginX * 2;  // 左右余白を差し引く
     const h = canvas.height;
-    const amplitude = h / 8;
+    const amplitude = h / 16;  // 振幅を半分に（元はh/8）
+
+    // ガイド点生成（θは0〜2π）、上下反転させるためsin波にマイナスをかける
+    // y = center - amplitude * sin(theta) にして上下反転
+    const centerY = h / 2;
     const guidePoints = [];
     const step = w / 50;
     for(let x=0; x<=w; x+=step){
       const theta = (x / w) * 2 * Math.PI;
-      const y = h/2 + amplitude * Math.sin(theta);
-      guidePoints.push({x, y});
+      const y = centerY - amplitude * Math.sin(theta);  // 上限反転
+      guidePoints.push({x: x + marginX, y});
     }
 
     return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
@@ -97,7 +98,6 @@
     "image3.png"
   ];
 
-  // ガイド線を描く
   function drawGuide(panel) {
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
@@ -112,14 +112,12 @@
     ctx.stroke();
   }
 
-  // 距離計算（2点間）
   function dist2(a,b){
     const dx = a.x - b.x;
     const dy = a.y - b.y;
     return dx*dx + dy*dy;
   }
 
-  // ガイド点でスナップ（最も近い点）
   function snapToGuide(x, y, guidePoints){
     let minDist = Infinity;
     let closest = guidePoints[0];
@@ -133,7 +131,6 @@
     return closest;
   }
 
-  // パネルごとの線を描く（黒の太線）
   function drawLine(panel){
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
@@ -149,7 +146,6 @@
     ctx.stroke();
   }
 
-  // 全パネルのガイド線を描く
   function drawAllGuides(){
     panels.forEach(drawGuide);
   }
@@ -157,19 +153,16 @@
   let activePanel = null;
   let isDrawing = false;
 
-  // 最後のガイド点(終点)
   function isAtEnd(point, guidePoints){
     const end = guidePoints[guidePoints.length - 1];
     return (point.x === end.x && point.y === end.y);
   }
 
-  // イベント登録
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
       activePanel = panel;
       isDrawing = true;
 
-      // 他パネルの線と画像リセット
       panels.forEach(p => {
         if(p !== panel){
           p.path = [];
@@ -178,10 +171,8 @@
         }
       });
 
-      // スクリーン画像クリア（線引き直し前）
       screenImage.src = '';
 
-      // 開始位置スナップ
       const rect = panel.canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
@@ -209,7 +200,6 @@
       if(!isDrawing || activePanel !== panel) return;
       isDrawing = false;
 
-      // 最後の点が終点なら画像表示
       const last = panel.path[panel.path.length - 1];
       if(isAtEnd(last, panel.guidePoints)){
         panel.drawn = true;
@@ -222,7 +212,6 @@
     });
   });
 
-  // 初期描画
   drawAllGuides();
 </script>
 
