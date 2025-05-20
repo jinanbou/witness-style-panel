@@ -1,162 +1,146 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>The Witness風 パネル線引き</title>
-<style>
-  body {
-    margin: 0; padding: 0;
-    background: #111;
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    height: 100vh;
-    gap: 10px;
-    user-select: none;
-  }
-  .panel {
-    position: relative;
-    width: 30vw;
-    max-width: 200px;
-    aspect-ratio: 1 / 1;
-    background-size: cover;
-    background-position: center;
-    border-radius: 10px;
-    touch-action: none; /* これ重要：スクロール防止 */
-    box-shadow: 0 0 8px #000;
-  }
-  canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    border-radius: 10px;
-    pointer-events: none; /* これでキャンバスはイベント受けない */
-  }
-  .draw-canvas {
-    pointer-events: auto; /* 線を引くためにこのキャンバスだけ有効にする */
-  }
-  /* スタート丸 */
-  .start-circle {
-    position: absolute;
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: white;
-    top: 15px;
-    left: 15px;
-    box-shadow: 0 0 4px #fff;
-    pointer-events: none; /* タッチは通す */
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Witness風パネル</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 10px;
+      background: #111;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      user-select: none;
+    }
+    .panel {
+      position: relative;
+      width: 30vw;
+      max-width: 200px;
+      aspect-ratio: 1/1;
+      background-size: cover;
+      background-position: center;
+      border-radius: 10px;
+      touch-action: none;
+      box-shadow: 0 0 5px #000;
+    }
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: auto;
+    }
+    .start-circle {
+      position: absolute;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: white;
+      top: 15px;
+      left: 15px;
+      box-shadow: 0 0 4px #fff;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
 
-<div class="panel" id="panel1" style="background-image: url('image1.jpeg');">
+<div class="panel" style="background-image: url('image1.jpeg');">
   <div class="start-circle"></div>
-  <canvas class="draw-canvas"></canvas>
+  <canvas></canvas>
 </div>
-<div class="panel" id="panel2" style="background-image: url('image2.png');">
+<div class="panel" style="background-image: url('image2.png');">
   <div class="start-circle"></div>
-  <canvas class="draw-canvas"></canvas>
+  <canvas></canvas>
 </div>
-<div class="panel" id="panel3" style="background-image: url('image3.png');">
+<div class="panel" style="background-image: url('image3.png');">
   <div class="start-circle"></div>
-  <canvas class="draw-canvas"></canvas>
+  <canvas></canvas>
 </div>
 
 <script>
-(() => {
-  const panels = document.querySelectorAll('.panel');
-  let drawing = false;
-  let ctx = null;
-  let lastPos = null;
-  let currentCanvas = null;
+document.querySelectorAll(".panel").forEach(panel => {
+  const canvas = panel.querySelector("canvas");
+  const ctx = canvas.getContext("2d");
 
-  // canvasサイズ合わせ（デバイスピクセル比考慮）
-  function resizeCanvas(canvas) {
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * devicePixelRatio;
-    canvas.height = rect.height * devicePixelRatio;
-    const context = canvas.getContext('2d');
-    context.scale(devicePixelRatio, devicePixelRatio);
-    return context;
-  }
-
-  // 始点近くかチェック（スタート丸の中心は左:15, 上:15, 半径12）
-  function isNearStart(pos, panel) {
+  // サイズ調整
+  function resizeCanvas() {
     const rect = panel.getBoundingClientRect();
-    const x = pos.x - rect.left;
-    const y = pos.y - rect.top;
-    const dx = x - 15;
-    const dy = y - 15;
-    return Math.sqrt(dx*dx + dy*dy) <= 12;
+    canvas.width = rect.width;
+    canvas.height = rect.height;
   }
 
-  // 位置取得（マウス/タッチ）
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+
+  let drawing = false;
+
   function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
     if (e.touches && e.touches.length > 0) {
-      return {x: e.touches[0].clientX, y: e.touches[0].clientY};
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top
+      };
     } else {
-      return {x: e.clientX, y: e.clientY};
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
     }
   }
 
-  panels.forEach(panel => {
-    const canvas = panel.querySelector('canvas');
-    ctx = resizeCanvas(canvas);
-
-    // 線のスタイル設定
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-
-    // 開始
-    function startDraw(e) {
-      e.preventDefault();
-      const pos = getPos(e);
-      if (!isNearStart(pos, panel)) return;
-      drawing = true;
-      currentCanvas = canvas;
-      ctx = canvas.getContext('2d');
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = 'white';
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      const rect = canvas.getBoundingClientRect();
-      ctx.moveTo(pos.x - rect.left, pos.y - rect.top);
-      lastPos = pos;
-    }
-    // 描画
-    function draw(e) {
-      if (!drawing || currentCanvas !== canvas) return;
-      e.preventDefault();
-      const pos = getPos(e);
-      const rect = canvas.getBoundingClientRect();
-      ctx.lineTo(pos.x - rect.left, pos.y - rect.top);
-      ctx.stroke();
-      lastPos = pos;
-    }
-    // 終了
-    function endDraw(e) {
-      if (!drawing || currentCanvas !== canvas) return;
-      e.preventDefault();
-      drawing = false;
-      currentCanvas = null;
-    }
-
-    // イベント登録
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', endDraw);
-    canvas.addEventListener('mouseleave', endDraw);
-
-    canvas.addEventListener('touchstart', startDraw, {passive:false});
-    canvas.addEventListener('touchmove', draw, {passive:false});
-    canvas.addEventListener('touchend', endDraw);
-    canvas.addEventListener('touchcancel', endDraw);
+  panel.addEventListener("mousedown", e => {
+    drawing = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
   });
-})();
+
+  panel.addEventListener("mousemove", e => {
+    if (!drawing) return;
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.stroke();
+  });
+
+  panel.addEventListener("mouseup", () => {
+    drawing = false;
+  });
+  panel.addEventListener("mouseleave", () => {
+    drawing = false;
+  });
+
+  panel.addEventListener("touchstart", e => {
+    e.preventDefault();
+    drawing = true;
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }, { passive: false });
+
+  panel.addEventListener("touchmove", e => {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.stroke();
+  }, { passive: false });
+
+  panel.addEventListener("touchend", () => {
+    drawing = false;
+  });
+  panel.addEventListener("touchcancel", () => {
+    drawing = false;
+  });
+});
 </script>
 
 </body>
