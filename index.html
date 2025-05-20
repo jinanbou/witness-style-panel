@@ -2,49 +2,45 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>Sin波線パネル</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Witness Style Panel with Central Screen</title>
 <style>
   body {
-    margin: 0;
+    margin: 0; padding: 0;
     background: #222;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: none;
     display: flex;
     flex-direction: column;
+    align-items: center;
     height: 100vh;
+    color: white;
+    user-select: none;
   }
-  #imageContainer {
+  #screen {
+    width: 70vw;
+    height: 50vh;
+    background: #333;
+    margin-top: 20px;
+    border: 3px solid #888;
     display: flex;
-    gap: 10px;
-    padding: 10px;
-    overflow-x: auto;
-    background: #111;
-    flex-shrink: 0;
+    justify-content: center;
+    align-items: center;
   }
-  #imageContainer img {
-    height: 200px;
-    flex-shrink: 0;
+  #screen img {
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
   }
-  #panelContainer {
+  .container {
+    margin-top: 30px;
     display: flex;
-    gap: 10px;
-    justify-content: center;
-    padding: 10px 0;
-    flex-grow: 1;
-    align-items: center;
-    background: #eee;
+    gap: 20px;
   }
   .panel {
+    position: relative;
     width: 120px;
     height: 120px;
-    background: #fff;
+    background: white;
     border: 2px solid #888;
-    position: relative;
-    touch-action: none;
   }
   canvas {
     position: absolute;
@@ -52,134 +48,183 @@
     width: 100%; height: 100%;
     touch-action: none;
   }
+  /* Guide line style */
+  .guide-line {
+    stroke: #ccc;
+    stroke-width: 2;
+  }
 </style>
 </head>
 <body>
-  <div id="imageContainer">
-    <img src="https://picsum.photos/id/1011/400/300" alt="image1" />
-    <img src="https://picsum.photos/id/1012/400/300" alt="image2" />
-    <img src="https://picsum.photos/id/1013/400/300" alt="image3" />
-  </div>
-  <div id="panelContainer">
-    <div class="panel"><canvas></canvas></div>
-    <div class="panel"><canvas></canvas></div>
-    <div class="panel"><canvas></canvas></div>
-  </div>
+
+<div id="screen">
+  <img id="screenImage" src="" alt="Selected Image" />
+</div>
+
+<div class="container">
+  <div class="panel"><canvas></canvas></div>
+  <div class="panel"><canvas></canvas></div>
+  <div class="panel"><canvas></canvas></div>
+</div>
+
 <script>
-  const panels = Array.from(document.querySelectorAll('.panel')).map(panel => {
+  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
     const canvas = panel.querySelector('canvas');
     const ctx = canvas.getContext('2d');
     const rect = panel.getBoundingClientRect();
     canvas.width = rect.width;
     canvas.height = rect.height;
-    return { panel, canvas, ctx, width: rect.width, height: rect.height, path: [], drawn: false };
+
+    // Sin波ガイド生成（幅全体にθ=0〜2π、振幅は高さの1/8）
+    const w = canvas.width;
+    const h = canvas.height;
+    const amplitude = h / 8;
+    const guidePoints = [];
+    const step = w / 50;
+    for(let x=0; x<=w; x+=step){
+      const theta = (x / w) * 2 * Math.PI;
+      const y = h/2 + amplitude * Math.sin(theta);
+      guidePoints.push({x, y});
+    }
+
+    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
   });
 
-  function makeSinGuidePoints(w, h) {
-    const points = [];
-    const amplitude = w / 8; // 振幅は横幅の1/8
-    const steps = 4;
-    for(let i = 0; i <= steps; i++) {
-      const theta = (Math.PI * 2) * (i / steps);
-      const x = (w / steps) * i;
-      const y = h/2 + amplitude * Math.sin(theta);
-      points.push({x, y});
-    }
-    return points;
-  }
+  const screenImage = document.getElementById('screenImage');
+  const imageSources = [
+    "image1.jpeg",
+    "image2.png",
+    "image3.png"
+  ];
 
-  function drawGuide(ctx, points) {
+  // ガイド線を描く
+  function drawGuide(panel) {
+    const ctx = panel.ctx;
+    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
     ctx.strokeStyle = '#ccc';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for(let i=1; i<points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
+    const pts = panel.guidePoints;
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=1; i<pts.length; i++){
+      ctx.lineTo(pts[i].x, pts[i].y);
     }
     ctx.stroke();
   }
 
-  function clearCanvas(panelObj) {
-    const {ctx, width, height} = panelObj;
-    ctx.clearRect(0, 0, width, height);
-    drawGuide(ctx, panelObj.guide);
+  // 距離計算（2点間）
+  function dist2(a,b){
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return dx*dx + dy*dy;
   }
 
-  panels.forEach(panel => {
-    panel.guide = makeSinGuidePoints(panel.width, panel.height);
-    drawGuide(panel.ctx, panel.guide);
-  });
-
-  let activePanel = null;
-  let isDrawing = false;
-  let currentPath = [];
-
-  function getClosestPoint(x, y, guide) {
+  // ガイド点でスナップ（最も近い点）
+  function snapToGuide(x, y, guidePoints){
     let minDist = Infinity;
-    let closest = guide[0];
-    for (const pt of guide) {
-      const dx = pt.x - x;
-      const dy = pt.y - y;
-      const dist = dx*dx + dy*dy;
-      if (dist < minDist) {
-        minDist = dist;
+    let closest = guidePoints[0];
+    for(const pt of guidePoints){
+      const d = dist2(pt, {x,y});
+      if(d < minDist){
+        minDist = d;
         closest = pt;
       }
     }
     return closest;
   }
 
+  // パネルごとの線を描く（黒の太線）
+  function drawLine(panel){
+    const ctx = panel.ctx;
+    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+    drawGuide(panel);
+    if(panel.path.length < 2) return;
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(panel.path[0].x, panel.path[0].y);
+    for(let i=1; i<panel.path.length; i++){
+      ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    }
+    ctx.stroke();
+  }
+
+  // 全パネルのガイド線を描く
+  function drawAllGuides(){
+    panels.forEach(drawGuide);
+  }
+
+  let activePanel = null;
+  let isDrawing = false;
+
+  // 最後のガイド点(終点)
+  function isAtEnd(point, guidePoints){
+    const end = guidePoints[guidePoints.length - 1];
+    return (point.x === end.x && point.y === end.y);
+  }
+
+  // イベント登録
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-      e.preventDefault();
       activePanel = panel;
+      isDrawing = true;
+
+      // 他パネルの線と画像リセット
       panels.forEach(p => {
-        if (p !== panel) {
-          clearCanvas(p);
+        if(p !== panel){
+          p.path = [];
           p.drawn = false;
+          drawGuide(p);
         }
       });
-      clearCanvas(panel);
-      isDrawing = true;
+
+      // スクリーン画像クリア（線引き直し前）
+      screenImage.src = '';
+
+      // 開始位置スナップ
       const rect = panel.canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const snap = getClosestPoint(x, y, panel.guide);
-      currentPath = [snap];
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const snap = snapToGuide(sx, sy, panel.guidePoints);
+      panel.path = [snap];
+
+      drawLine(panel);
     });
 
     panel.canvas.addEventListener('pointermove', e => {
-      e.preventDefault();
-      if (!isDrawing || activePanel !== panel) return;
-      const rect = panel.canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const snap = getClosestPoint(x, y, panel.guide);
-      const last = currentPath[currentPath.length - 1];
-      if (last !== snap) currentPath.push(snap);
+      if(!isDrawing || activePanel !== panel) return;
 
-      clearCanvas(panel);
-      const ctx = panel.ctx;
-      ctx.strokeStyle = 'black';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(currentPath[0].x, currentPath[0].y);
-      for (let i = 1; i < currentPath.length; i++) {
-        ctx.lineTo(currentPath[i].x, currentPath[i].y);
+      const rect = panel.canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const snap = snapToGuide(mx, my, panel.guidePoints);
+      const last = panel.path[panel.path.length - 1];
+      if(snap !== last){
+        panel.path.push(snap);
+        drawLine(panel);
       }
-      ctx.stroke();
     });
 
     panel.canvas.addEventListener('pointerup', e => {
-      e.preventDefault();
-      if (!isDrawing || activePanel !== panel) return;
+      if(!isDrawing || activePanel !== panel) return;
       isDrawing = false;
-      // 描いた線は残る
-    });
 
-    panel.canvas.addEventListener('touchstart', e => e.preventDefault());
-    panel.canvas.addEventListener('touchmove', e => e.preventDefault());
+      // 最後の点が終点なら画像表示
+      const last = panel.path[panel.path.length - 1];
+      if(isAtEnd(last, panel.guidePoints)){
+        panel.drawn = true;
+        screenImage.src = imageSources[panel.index];
+      } else {
+        panel.path = [];
+        drawGuide(panel);
+        screenImage.src = '';
+      }
+    });
   });
+
+  // 初期描画
+  drawAllGuides();
 </script>
+
 </body>
 </html>
