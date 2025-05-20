@@ -99,7 +99,7 @@
   function drawGuide(panel) {
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    ctx.strokeStyle = '#8ff';
+    ctx.strokeStyle = '#acf';
     ctx.lineWidth = 6;
     ctx.beginPath();
     const pts = panel.guidePoints;
@@ -110,7 +110,7 @@
     ctx.stroke();
 
     // 左端に丸を描く（スタート地点）
-    ctx.fillStyle = '#8ff';
+    ctx.fillStyle = '#acf';
     ctx.beginPath();
     ctx.arc(pts[0].x, pts[0].y, 6, 0, 2*Math.PI);
     ctx.fill();
@@ -140,7 +140,7 @@
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
     drawGuide(panel);
     if(panel.path.length < 2) return;
-    ctx.strokeStyle = '#3cc';
+    ctx.strokeStyle = '#5cf';
     ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.moveTo(panel.path[0].x, panel.path[0].y);
