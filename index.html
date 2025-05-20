@@ -112,9 +112,10 @@
     ctx.stroke();
 
     // 左端に丸を描く（スタート地点）
-    ctx.fillStyle = '#fff';
+    const start = panel.guidePoints[0];
+    ctx.fillStyle = (isDrawing && activePanel === panel) ? '#fff' : '#3ad';
     ctx.beginPath();
-    ctx.arc(pts[0].x, pts[0].y, 6, 0, 2*Math.PI);
+    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
     ctx.fill();
   }
 
