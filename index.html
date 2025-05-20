@@ -2,170 +2,209 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Canvas Panels</title>
+  <title>3パネル＋中央画像表示</title>
   <style>
     body, html {
-      margin: 0; padding: 0; height: 100%;
-      overflow: hidden;
+      margin: 0; padding: 0; height: 100vh; overflow: hidden;
+      display: flex; justify-content: center; align-items: center;
+      background: #fff;
+      font-family: sans-serif;
+    }
+    #container {
+      position: relative;
+      width: 90vw;
+      height: 80vh;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .panel {
+      position: relative;
+      width: 20vw;
+      height: 100%;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      touch-action: none;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
     #screen {
       position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: white;
+      width: 35vw;
+      height: 100%;
+      border: 2px solid #666;
+      box-sizing: border-box;
       overflow: hidden;
     }
-    #canvas {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 10;
-    }
-    img#canvas2 {
-      position: absolute;
-      top: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 50%; height: 100%;
+    #screen img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      z-index: 0;
-      user-select: none;
-      pointer-events: none;
-    }
-    canvas {
-      position: absolute;
-      touch-action: none;
-      z-index: 10;
-      user-select: none;
+      display: none;
     }
   </style>
 </head>
 <body>
+
+<div id="container">
+  <div class="panel" id="panel0"></div>
   <div id="screen">
-    <div id="canvas"></div>
-    <img id="canvas2" src="https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d" alt="Background" />
+    <img id="screenImg" src="" alt="中央スクリーン画像" />
   </div>
+  <div class="panel" id="panel1"></div>
+  <div class="panel" id="panel2"></div>
+</div>
 
-  <script>
-    const canvasContainer = document.getElementById('canvas');
-    const screen = document.getElementById('screen');
+<script>
+  // 各パネルに対応する画像URL
+  const images = [
+    'https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d',
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb',
+    'https://images.unsplash.com/photo-1500534623283-312aade485b7'
+  ];
 
-    const panels = [];
-    const numPanels = 4;
+  // パネル数
+  const numPanels = 3;
 
-    function createPanel(ctx, width, height) {
-      const panel = {
-        ctx,
-        canvas: ctx.canvas,
-        path: [],
-        drawing: false,
-        guidePoints: []
-      };
-      // ガイド線用sin波データ作成
-      const amp = height / 16; // 振幅を半分に
-      const margin = 20;
-      const length = width - margin * 2;
-      for (let i = 0; i <= 100; i++) {
-        const theta = (i / 100) * 2 * Math.PI;
-        const x = margin + (theta / (2 * Math.PI)) * length;
-        const y = height / 2 - amp * Math.sin(theta); // 上下反転
-        panel.guidePoints.push({ x, y });
-      }
-      drawGuide(panel);
-      return panel;
+  // パネルデータ保持用
+  const panels = [];
+
+  // 中央スクリーンのimg要素
+  const screenImg = document.getElementById('screenImg');
+
+  // ガイド線と初期設定を描く関数
+  function createPanel(container, index) {
+    const canvas = document.createElement('canvas');
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    canvas.style.position = 'absolute';
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    // ガイド線のsin波描画
+    const amp = canvas.height / 16;
+    const margin = 20;
+    const length = canvas.width - margin * 2;
+    const guidePoints = [];
+    for(let i = 0; i <= 100; i++){
+      const theta = (i / 100) * 2 * Math.PI;
+      const x = margin + (theta / (2 * Math.PI)) * length;
+      const y = canvas.height / 2 - amp * Math.sin(theta);
+      guidePoints.push({x, y});
     }
 
-    function drawGuide(panel) {
-      const ctx = panel.ctx;
-      ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-      const guideColor = '#aaa'; // 灰色
-
-      // ガイド線を描く
-      ctx.strokeStyle = guideColor;
-      ctx.lineWidth = 6; // 太めに（線の太さ3倍）
-      ctx.lineCap = 'round'; // 端を丸く
-      ctx.beginPath();
-      const pts = panel.guidePoints;
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) {
-        ctx.lineTo(pts[i].x, pts[i].y);
-      }
-      ctx.stroke();
-
-      // 視点の丸（始点の丸）も灰色で描く
-      ctx.fillStyle = guideColor;
-      ctx.beginPath();
-      ctx.arc(pts[0].x, pts[0].y, 6, 0, 2 * Math.PI);
-      ctx.fill();
+    // ガイド線描画
+    ctx.strokeStyle = '#aaa';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(guidePoints[0].x, guidePoints[0].y);
+    for(let i=1; i<guidePoints.length; i++){
+      ctx.lineTo(guidePoints[i].x, guidePoints[i].y);
     }
+    ctx.stroke();
 
-    function drawLine(panel) {
-      const ctx = panel.ctx;
-      // まずガイド線を描き直す（線を消すため）
-      drawGuide(panel);
+    // ガイド線の端の丸（灰色）
+    ctx.fillStyle = '#aaa';
+    ctx.beginPath();
+    ctx.arc(guidePoints[0].x, guidePoints[0].y, 8, 0, 2*Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(guidePoints[guidePoints.length-1].x, guidePoints[guidePoints.length-1].y, 8, 0, 2*Math.PI);
+    ctx.fill();
 
-      if (panel.path.length < 2) return;
-      ctx.strokeStyle = '#aaa';  // ガイド線と同じ灰色
-      ctx.lineWidth = 9;         // 太さ3倍（元は3）
-      ctx.lineCap = 'round';     // 線の端を丸く
-      ctx.lineJoin = 'round';    // 線の接続部分も丸く
-      ctx.beginPath();
-      ctx.moveTo(panel.path[0].x, panel.path[0].y);
-      for (let i = 1; i < panel.path.length; i++) {
-        ctx.lineTo(panel.path[i].x, panel.path[i].y);
-      }
-      ctx.stroke();
+    return {
+      container,
+      canvas,
+      ctx,
+      path: [],
+      drawing: false,
+      guidePoints,
+      index
+    };
+  }
+
+  // 描画を更新する関数
+  function drawLine(panel) {
+    const ctx = panel.ctx;
+    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+
+    // まずガイド線を再描画
+    ctx.strokeStyle = '#aaa';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const pts = panel.guidePoints;
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=1; i<pts.length; i++){
+      ctx.lineTo(pts[i].x, pts[i].y);
     }
+    ctx.stroke();
 
-    function setupPanels() {
-      const width = screen.clientWidth / numPanels;
-      const height = screen.clientHeight;
+    ctx.fillStyle = '#aaa';
+    ctx.beginPath();
+    ctx.arc(pts[0].x, pts[0].y, 8, 0, 2*Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(pts[pts.length-1].x, pts[pts.length-1].y, 8, 0, 2*Math.PI);
+    ctx.fill();
 
-      for (let i = 0; i < numPanels; i++) {
-        const canvasEl = document.createElement('canvas');
-        canvasEl.width = width;
-        canvasEl.height = height;
-        canvasEl.style.position = 'absolute';
-        canvasEl.style.left = `${(width + 20) * i}px`;
-        canvasEl.style.top = '0';
-        const ctx = canvasEl.getContext('2d');
-        const panel = createPanel(ctx, width, height);
-        panels.push(panel);
+    // 描画された線
+    if(panel.path.length < 2) return;
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(panel.path[0].x, panel.path[0].y);
+    for(let i=1; i<panel.path.length; i++){
+      ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    }
+    ctx.stroke();
+  }
 
-        canvasContainer.appendChild(canvasEl);
+  // 初期化処理
+  function init() {
+    for(let i=0; i<numPanels; i++){
+      const container = document.getElementById('panel'+i);
+      const panel = createPanel(container, i);
+      panels.push(panel);
 
-        canvasEl.addEventListener('pointerdown', (e) => {
-          panel.drawing = true;
-          panel.path = [];
-          panel.path.push({ x: e.offsetX, y: e.offsetY });
-          drawLine(panel);
-        });
-
-        canvasEl.addEventListener('pointermove', (e) => {
-          if (!panel.drawing) return;
-          panel.path.push({ x: e.offsetX, y: e.offsetY });
-          drawLine(panel);
-        });
-
-        canvasEl.addEventListener('pointerup', () => {
+      // 描画イベント
+      panel.canvas.addEventListener('pointerdown', e => {
+        panel.drawing = true;
+        panel.path = [{x: e.offsetX, y: e.offsetY}];
+        drawLine(panel);
+      });
+      panel.canvas.addEventListener('pointermove', e => {
+        if(!panel.drawing) return;
+        panel.path.push({x: e.offsetX, y: e.offsetY});
+        drawLine(panel);
+      });
+      panel.canvas.addEventListener('pointerup', e => {
+        if(panel.drawing){
           panel.drawing = false;
-        });
+          if(panel.path.length > 1){
+            // 線を描き終わったら対応画像を中央に表示
+            screenImg.src = images[panel.index];
+            screenImg.style.display = 'block';
+          }
+        }
+      });
 
-        canvasEl.addEventListener('pointerleave', () => {
-          panel.drawing = false;
-        });
-      }
+      // 画面サイズ変更時もキャンバスリサイズ（必要に応じて）
+      window.addEventListener('resize', () => {
+        panel.canvas.width = container.clientWidth;
+        panel.canvas.height = container.clientHeight;
+        drawLine(panel);
+      });
     }
+  }
 
-    window.addEventListener('load', setupPanels);
-    window.addEventListener('resize', () => {
-      // リサイズしたらキャンバスをクリアして再セットアップ
-      while (canvasContainer.firstChild) {
-        canvasContainer.removeChild(canvasContainer.firstChild);
-      }
-      panels.length = 0;
-      setupPanels();
-    });
-  </script>
+  window.onload = init;
+</script>
+
 </body>
 </html>
