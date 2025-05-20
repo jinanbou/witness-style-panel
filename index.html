@@ -1,182 +1,185 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Witness Style Panel</title>
-  <style>
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #222;
-      overflow: hidden;          /* スクロール禁止 */
-      touch-action: none;        /* タッチスクロール禁止 */
-      -webkit-user-select: none; /* 選択禁止（iOS対応） */
-      user-select: none;
-    }
-    .container {
-      display: flex;
-      gap: 10px;
-      overflow: hidden;          /* スクロール禁止 */
-      touch-action: none;        /* タッチスクロール禁止 */
-    }
-    .panel {
-      position: relative;
-      width: 120px;
-      height: 240px;
-      background-color: #fff;
-      border: 2px solid #888;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-    }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      touch-action: none;
-    }
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
-      user-select: none;
-      -webkit-user-select: none;
-      pointer-events: none;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Sin波線パネル</title>
+<style>
+  body {
+    margin: 0;
+    background: #222;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  #imageContainer {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    overflow-x: auto;
+    background: #111;
+    flex-shrink: 0;
+  }
+  #imageContainer img {
+    height: 200px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+  #panelContainer {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 10px 0;
+    flex-grow: 1;
+    align-items: center;
+    background: #eee;
+  }
+  .panel {
+    width: 120px;
+    height: 120px;
+    background: #fff;
+    border: 2px solid #888;
+    position: relative;
+    touch-action: none;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    touch-action: none;
+  }
+</style>
 </head>
 <body>
-  <div class="container">
-    <div class="panel"><canvas></canvas><img src="image1.jpeg" alt="image1"></div>
-    <div class="panel"><canvas></canvas><img src="image2.png" alt="image2"></div>
-    <div class="panel"><canvas></canvas><img src="image3.png" alt="image3"></div>
+  <div id="imageContainer">
+    <img src="https://picsum.photos/id/1011/400/300" alt="image1" />
+    <img src="https://picsum.photos/id/1012/400/300" alt="image2" />
+    <img src="https://picsum.photos/id/1013/400/300" alt="image3" />
   </div>
-  <script>
-    const panels = Array.from(document.querySelectorAll('.panel')).map(panel => {
-      const canvas = panel.querySelector('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = panel.querySelector('img');
-      const rect = panel.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-      return { panel, canvas, ctx, img, guide: makeGuidePath(canvas.width, canvas.height), path: [], drawn: false };
+  <div id="panelContainer">
+    <div class="panel"><canvas></canvas></div>
+    <div class="panel"><canvas></canvas></div>
+    <div class="panel"><canvas></canvas></div>
+  </div>
+<script>
+  const panels = Array.from(document.querySelectorAll('.panel')).map(panel => {
+    const canvas = panel.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const rect = panel.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    return { panel, canvas, ctx, width: rect.width, height: rect.height, path: [], drawn: false };
+  });
+
+  function makeSinGuidePoints(w, h) {
+    const points = [];
+    const amplitude = w / 8; // 振幅は横幅の1/8
+    const steps = 4;
+    for(let i = 0; i <= steps; i++) {
+      const theta = (Math.PI * 2) * (i / steps);
+      const x = (w / steps) * i;
+      const y = h/2 + amplitude * Math.sin(theta);
+      points.push({x, y});
+    }
+    return points;
+  }
+
+  function drawGuide(ctx, points) {
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for(let i=1; i<points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+  }
+
+  function clearCanvas(panelObj) {
+    const {ctx, width, height} = panelObj;
+    ctx.clearRect(0, 0, width, height);
+    drawGuide(ctx, panelObj.guide);
+  }
+
+  panels.forEach(panel => {
+    panel.guide = makeSinGuidePoints(panel.width, panel.height);
+    drawGuide(panel.ctx, panel.guide);
+  });
+
+  let activePanel = null;
+  let isDrawing = false;
+  let currentPath = [];
+
+  function getClosestPoint(x, y, guide) {
+    let minDist = Infinity;
+    let closest = guide[0];
+    for (const pt of guide) {
+      const dx = pt.x - x;
+      const dy = pt.y - y;
+      const dist = dx*dx + dy*dy;
+      if (dist < minDist) {
+        minDist = dist;
+        closest = pt;
+      }
+    }
+    return closest;
+  }
+
+  panels.forEach(panel => {
+    panel.canvas.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      activePanel = panel;
+      panels.forEach(p => {
+        if (p !== panel) {
+          clearCanvas(p);
+          p.drawn = false;
+        }
+      });
+      clearCanvas(panel);
+      isDrawing = true;
+      const rect = panel.canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const snap = getClosestPoint(x, y, panel.guide);
+      currentPath = [snap];
     });
 
-    function makeGuidePath(w, h) {
-      return [
-        { x: w * 0.2, y: h * 0.2 },
-        { x: w * 0.5, y: h * 0.2 },
-        { x: w * 0.5, y: h * 0.5 },
-        { x: w * 0.8, y: h * 0.5 }
-      ];
-    }
+    panel.canvas.addEventListener('pointermove', e => {
+      e.preventDefault();
+      if (!isDrawing || activePanel !== panel) return;
+      const rect = panel.canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const snap = getClosestPoint(x, y, panel.guide);
+      const last = currentPath[currentPath.length - 1];
+      if (last !== snap) currentPath.push(snap);
 
-    function drawGuides(panel) {
+      clearCanvas(panel);
       const ctx = panel.ctx;
-      ctx.strokeStyle = '#ccc';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(panel.guide[0].x, panel.guide[0].y);
-      for (let i = 1; i < panel.guide.length; i++) {
-        ctx.lineTo(panel.guide[i].x, panel.guide[i].y);
+      ctx.moveTo(currentPath[0].x, currentPath[0].y);
+      for (let i = 1; i < currentPath.length; i++) {
+        ctx.lineTo(currentPath[i].x, currentPath[i].y);
       }
       ctx.stroke();
-    }
-
-    function clearCanvas(panel) {
-      panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-      drawGuides(panel);
-    }
-
-    panels.forEach(panel => {
-      drawGuides(panel);
     });
 
-    let activePanel = null;
-    let isDrawing = false;
-    let currentPath = [];
-
-    function getClosestPoint(x, y, guide) {
-      let minDist = Infinity;
-      let closest = guide[0];
-      for (const pt of guide) {
-        const dx = pt.x - x;
-        const dy = pt.y - y;
-        const dist = dx * dx + dy * dy;
-        if (dist < minDist) {
-          minDist = dist;
-          closest = pt;
-        }
-      }
-      return closest;
-    }
-
-    panels.forEach(panel => {
-      panel.canvas.addEventListener('pointerdown', e => {
-        e.preventDefault();
-        activePanel = panel;
-        panels.forEach(p => {
-          if (p !== panel) {
-            clearCanvas(p);
-            p.drawn = false;
-          }
-        });
-        clearCanvas(panel);
-        isDrawing = true;
-        const rect = panel.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const snap = getClosestPoint(x, y, panel.guide);
-        currentPath = [snap];
-      });
-
-      panel.canvas.addEventListener('pointermove', e => {
-        e.preventDefault();
-        if (!isDrawing || activePanel !== panel) return;
-        const rect = panel.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const snap = getClosestPoint(x, y, panel.guide);
-        const last = currentPath[currentPath.length - 1];
-        if (last !== snap) {
-          currentPath.push(snap);
-        }
-        clearCanvas(panel);
-        panel.ctx.strokeStyle = 'black';
-        panel.ctx.lineWidth = 3;
-        panel.ctx.beginPath();
-        panel.ctx.moveTo(currentPath[0].x, currentPath[0].y);
-        for (let i = 1; i < currentPath.length; i++) {
-          panel.ctx.lineTo(currentPath[i].x, currentPath[i].y);
-        }
-        panel.ctx.stroke();
-      });
-
-      panel.canvas.addEventListener('pointerup', e => {
-        e.preventDefault();
-        if (!isDrawing || activePanel !== panel) return;
-        isDrawing = false;
-        const last = currentPath[currentPath.length - 1];
-        const end = panel.guide[panel.guide.length - 1];
-        if (last.x === end.x && last.y === end.y) {
-          panel.img.style.display = 'block';
-          panel.drawn = true;
-        } else {
-          clearCanvas(panel);
-        }
-      });
-
-      // iPad Safari対策でtouchイベントもpreventDefault
-      panel.canvas.addEventListener('touchstart', e => e.preventDefault());
-      panel.canvas.addEventListener('touchmove', e => e.preventDefault());
+    panel.canvas.addEventListener('pointerup', e => {
+      e.preventDefault();
+      if (!isDrawing || activePanel !== panel) return;
+      isDrawing = false;
+      // 描いた線は残る
     });
-  </script>
+
+    panel.canvas.addEventListener('touchstart', e => e.preventDefault());
+    panel.canvas.addEventListener('touchmove', e => e.preventDefault());
+  });
+</script>
 </body>
 </html>
