@@ -1,5 +1,4 @@
 <!DOCTYPE html> 
-
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
@@ -50,34 +49,24 @@
     touch-action: none;
   }
 
-  /* ↓ここから回答欄のスタイル追加 */
-  #answerSection {
-    margin-top: 30px;
+  /* 解答欄のスタイル */
+  #answerArea {
+    display: none;
+    margin-top: 20px;
     width: 70vw;
-    display: flex;
-    gap: 10px;
-    align-items: center;
+    background: #444;
+    color: #fff;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 16px;
   }
   #answerInput {
-    flex-grow: 1;
-    padding: 8px 12px;
-    font-size: 1rem;
+    width: 100%;
+    padding: 8px;
+    font-size: 16px;
     border-radius: 4px;
     border: none;
-    outline: none;
-  }
-  #answerSubmit {
-    padding: 8px 16px;
-    font-size: 1rem;
-    border-radius: 4px;
-    border: none;
-    background-color: #3ad;
-    color: white;
-    cursor: pointer;
-    user-select: none;
-  }
-  #answerSubmit:hover {
-    background-color: #259;
+    box-sizing: border-box;
   }
 </style>
 </head>
@@ -93,10 +82,10 @@
   <div class="panel"><canvas></canvas></div>
 </div>
 
-<!-- ↓ここに回答欄を追加 -->
-<div id="answerSection">
-  <input type="text" id="answerInput" placeholder="ここに回答を入力してください" />
-  <button id="answerSubmit">送信</button>
+<!-- 解答欄 -->
+<div id="answerArea">
+  <strong>解答欄：</strong>
+  <input type="text" id="answerInput" placeholder="ここに入力してください" />
 </div>
 
 <script>
@@ -203,6 +192,15 @@
     return (point.x === end.x && point.y === end.y);
   }
 
+  // 解答欄の要素
+  const answerArea = document.getElementById('answerArea');
+
+  function updateAnswerAreaVisibility() {
+    // どれか1つでも描き切っていたら表示
+    const anyDrawn = panels.some(panel => panel.drawn);
+    answerArea.style.display = anyDrawn ? 'block' : 'none';
+  }
+
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
       activePanel = panel;
@@ -255,29 +253,13 @@
         panel.path = [];
         drawGuide(panel);
         screenImage.src = '';
+        panel.drawn = false;
       }
+      updateAnswerAreaVisibility();
     });
   });
 
   drawAllGuides();
-
-  // ↓ここから回答欄の送信ボタン処理追加
-  const answerInput = document.getElementById('answerInput');
-  const answerSubmit = document.getElementById('answerSubmit');
-
-  answerSubmit.addEventListener('click', () => {
-    const answer = answerInput.value.trim();
-    if(answer === ''){
-      alert('回答を入力してください。');
-      return;
-    }
-    // ここに回答送信時の処理を追加可能
-    console.log('回答:', answer);
-
-    // 例: 入力欄を空にする
-    answerInput.value = '';
-    alert('回答を送信しました。');
-  });
 </script>
 
 </body>
