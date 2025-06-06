@@ -1,68 +1,63 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WitnessSystem</title>
-  <style>
-    body {
-      margin: 0; padding: 0;
-      background: #222;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      color: white;
-      user-select: none;
-    }
-    #screen {
-      width: 70vw;
-      height: 50vh;
-      background: #333;
-      margin-top: 20px;
-      border: 3px solid #888;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    #screen img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-    #answerArea {
-      margin-top: 20px;
-      display: none;
-    }
-    #answerInput {
-      padding: 5px 10px;
-      font-size: 16px;
-    }
-    #submitBtn {
-      padding: 5px 12px;
-      font-size: 16px;
-      margin-left: 8px;
-      cursor: pointer;
-    }
-    .container {
-      margin-top: 30px;
-      display: flex;
-      gap: 20px;
-    }
-    .panel {
-      position: relative;
-      width: calc(70vw / 4);
-      height: 120px;
-      background: #ccc;
-      border: 2px solid #888;
-    }
-    canvas {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      touch-action: none;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WitnessSystem</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    background: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    color: white;
+    user-select: none;
+  }
+  #screen {
+    width: 70vw;
+    height: 50vh;
+    background: #333;
+    margin-top: 20px;
+    border: 3px solid #888;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  #screen img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .container {
+    margin-top: 30px;
+    display: flex;
+    gap: 20px;
+  }
+  .panel {
+    position: relative;
+    width: calc(70vw / 4);
+    height: 120px;
+    background: #ccc;
+    border: 2px solid #888;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    touch-action: none;
+  }
+  .answer-box {
+    display: none;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+  }
+</style>
 </head>
 <body>
 
@@ -70,18 +65,15 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
-<div id="answerArea">
-  <form id="answerForm" onsubmit="return false;">
-    <input id="answerInput" type="text" placeholder="ここに解答を入力" />
-    <button id="submitBtn">送信</button>
-    <span id="resultMessage" style="margin-left: 10px;"></span>
-  </form>
-</div>
-
 <div class="container">
   <div class="panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
+</div>
+
+<div id="answerBox" class="answer-box">
+  <input type="text" id="answerInput" placeholder="Enter the correct answer">
+  <button id="submitAnswer">Submit</button>
 </div>
 
 <script>
@@ -106,52 +98,55 @@
       guidePoints.push({x: x + marginX, y});
     }
 
-    return {
-      panel, canvas, ctx, guidePoints,
-      path: [], drawn: false, index: i, enabled: i === 0 // 最初のパネルだけ有効
-    };
+    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, enabled: i === 0, index: i };
   });
 
   const screenImage = document.getElementById('screenImage');
-  const answerArea = document.getElementById('answerArea');
-  const answerInput = document.getElementById('answerInput');
-  const submitBtn = document.getElementById('submitBtn');
-  const resultMessage = document.getElementById('resultMessage');
+  const imageSources = [
+    "image1.jpeg",
+    "image2.png",
+    "image3.png"
+  ];
 
-  const imageSources = ["image1.jpeg", "image2.png", "image3.png"];
-  const answers = ["りんご", "みかん", "ぶどう"];
+  const answerBox = document.getElementById('answerBox');
+  const answerInput = document.getElementById('answerInput');
+  const submitAnswerButton = document.getElementById('submitAnswer');
+
+  function unlockPanel(index) {
+    if (index >= panels.length) return;
+
+    const panel = panels[index];
+    panel.enabled = true;
+    drawGuide(panel);
+  }
 
   function drawGuide(panel) {
-  const ctx = panel.ctx;
-  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+    const ctx = panel.ctx;
+    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+    if (!panel.enabled) {
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
+      return;
+    }
 
-  if (!panel.enabled) {
-    // ロック状態：真っ黒なパネルにする
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
-    return;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const pts = panel.guidePoints;
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=1; i<pts.length; i++){
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
+
+    const start = panel.guidePoints[0];
+    ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
+    ctx.beginPath();
+    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
+    ctx.fill();
   }
-
-  // 有効状態：ガイド線を表示
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  const pts = panel.guidePoints;
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) {
-    ctx.lineTo(pts[i].x, pts[i].y);
-  }
-  ctx.stroke();
-
-  const start = panel.guidePoints[0];
-  ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
-  ctx.beginPath();
-  ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
-  ctx.fill();
-}
-
 
   function drawLine(panel){
     const ctx = panel.ctx;
@@ -160,16 +155,14 @@
     if(panel.path.length < 2) return;
     ctx.strokeStyle = '#3ad';
     ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(panel.path[0].x, panel.path[0].y);
     for(let i=1; i<panel.path.length; i++){
       ctx.lineTo(panel.path[i].x, panel.path[i].y);
     }
     ctx.stroke();
-  }
-
-  function drawAllGuides(){
-    panels.forEach(drawGuide);
   }
 
   function dist2(a,b){
@@ -196,26 +189,12 @@
     return (point.x === end.x && point.y === end.y);
   }
 
-  function updateDisplay() {
-    const drawnPanel = panels.find(p => p.drawn);
-    if (drawnPanel) {
-      screenImage.src = imageSources[drawnPanel.index];
-      answerArea.style.display = 'block';
-      answerInput.value = '';
-      resultMessage.textContent = '';
-    } else {
-      screenImage.src = '';
-      answerArea.style.display = 'none';
-    }
-  }
-
   let activePanel = null;
   let isDrawing = false;
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
       if (!panel.enabled) return;
-
       activePanel = panel;
       isDrawing = true;
 
@@ -227,12 +206,21 @@
         }
       });
 
-      panel.path = [panel.guidePoints[0]];
+      screenImage.src = '';
+
+      const rect = panel.canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+
+      const startPoint = panel.guidePoints[0];
+      panel.path = [startPoint];
+
       drawLine(panel);
     });
 
     panel.canvas.addEventListener('pointermove', e => {
-      if(!isDrawing || activePanel !== panel || !panel.enabled) return;
+      if(!isDrawing || activePanel !== panel) return;
+
       const rect = panel.canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
@@ -245,44 +233,37 @@
     });
 
     panel.canvas.addEventListener('pointerup', e => {
-      if(!isDrawing || activePanel !== panel || !panel.enabled) return;
+      if(!isDrawing || activePanel !== panel) return;
       isDrawing = false;
 
       const last = panel.path[panel.path.length - 1];
       if(isAtEnd(last, panel.guidePoints)){
         panel.drawn = true;
+        screenImage.src = imageSources[panel.index];
+        answerBox.style.display = 'block';
       } else {
         panel.path = [];
-        panel.drawn = false;
+        drawGuide(panel);
+        screenImage.src = '';
+        answerBox.style.display = 'none';
       }
-      drawGuide(panel);
-      updateDisplay();
     });
   });
 
-  submitBtn.addEventListener('click', () => {
-    const input = answerInput.value.trim().toLowerCase();
-    const drawnPanel = panels.find(p => p.drawn);
-    if (!drawnPanel) return;
-    const correct = answers[drawnPanel.index].toLowerCase();
-    if (input === correct) {
-      resultMessage.textContent = '正解です！';
-      resultMessage.style.color = 'lime';
-      drawnPanel.enabled = false;
+  submitAnswerButton.addEventListener('click', () => {
+    const correctAnswers = ['comment', 'visits', 'helps'];
+    const userAnswer = answerInput.value.trim().toLowerCase();
 
-      const nextPanel = panels[drawnPanel.index + 1];
-      if (nextPanel) {
-        nextPanel.enabled = true;
-        nextPanel.path = [];
-        nextPanel.drawn = false;
-        drawGuide(nextPanel);
-      }
+    const activePanelIndex = panels.findIndex(p => p === activePanel);
+    if (correctAnswers[activePanelIndex] === userAnswer) {
+      unlockPanel(activePanelIndex + 1);
+      answerBox.style.display = 'none';
     } else {
-      resultMessage.textContent = '';
+      alert("Incorrect answer! Try again.");
     }
   });
 
-  drawAllGuides();
+  drawGuide(panels[0]);
 </script>
 
 </body>
