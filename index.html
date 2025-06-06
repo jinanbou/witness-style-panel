@@ -2,53 +2,166 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>パネルクイズ</title>
+  <title>線を引いて画像を表示＋解答判定</title>
   <style>
-    .panel { display: none; margin: 20px 0; }
-    .panel.visible { display: block; }
-    input { margin-right: 10px; }
+    .panel {
+      border: 1px solid #ccc;
+      margin: 10px;
+    }
+    #container {
+      display: flex;
+      flex-direction: row;
+    }
+    #imageContainer {
+      margin-top: 20px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <h1>パネルクイズ</h1>
-
-  <div class="panel visible" id="panel1">
-    <img src="panel1.jpg" width="300" />
-    <p>答えを入力してください：</p>
-    <input type="text" id="answer1" />
-    <button onclick="checkAnswer(1)">OK</button>
-    <p class="result" id="result1"></p>
+  <h2>ガイドに沿って線を引こう</h2>
+  <div id="container">
+    <canvas id="panel1" class="panel" width="200" height="200"></canvas>
+    <canvas id="panel2" class="panel" width="200" height="200"></canvas>
+    <canvas id="panel3" class="panel" width="200" height="200"></canvas>
   </div>
 
-  <div class="panel" id="panel2">
-    <img src="panel2.jpg" width="300" />
-    <p>答えを入力してください：</p>
-    <input type="text" id="answer2" />
-    <button onclick="checkAnswer(2)">OK</button>
-    <p class="result" id="result2"></p>
+  <div id="imageContainer">
+    <img id="screenImage" src="" alt="表示画像" width="300" style="display:block; margin: 0 auto;" />
   </div>
 
-  <!-- 必要に応じてもっと増やせます -->
+  <div id="answerSection" style="margin-top: 20px; display: none; flex-direction: column; align-items: center;">
+    <label for="answerInput">答えを入力：</label>
+    <input id="answerInput" type="text" />
+    <button id="submitAnswer">送信</button>
+    <div id="resultMessage" style="margin-top: 10px;"></div>
+  </div>
 
   <script>
-    // 簡単な答えの隠し方（base64でちょっと見づらく）
-    const answers = {
-      1: atob('5pel5pys'), // 日本語: 答え = "答え"
-      2: atob('44GT44KT44Gr') // 例：英語 = "にほんご"
+    const panels = [
+      { id: 'panel1', guidePoints: [[10, 190], [190, 10]], drawn: false, index: 0 },
+      { id: 'panel2', guidePoints: [[10, 10], [190, 190]], drawn: false, index: 1 },
+      { id: 'panel3', guidePoints: [[100, 10], [100, 190]], drawn: false, index: 2 }
+    ];
+
+    const imageSources = [
+      'image1.jpeg',
+      'image2.png',
+      'image3.png'
+    ];
+
+    const correctAnswers = {
+      'image1.jpeg': 'comment',
+      'image2.png': 'visits',
+      'image3.png': 'helps'
     };
 
-    function checkAnswer(panelNumber) {
-      const input = document.getElementById(`answer${panelNumber}`).value.trim()
-      const result = document.getElementById(`result${panelNumber}`)
-      if (input === answers[panelNumber]) {
-        result.textContent = "正解！次のパネルが開きます。"
-        const nextPanel = document.getElementById(`panel${panelNumber + 1}`)
-        if (nextPanel) nextPanel.classList.add("visible")
-      } else {
-        result.textContent = "不正解です。もう一度試してください。"
-      }
+    const screenImage = document.getElementById('screenImage');
+    const answerSection = document.getElementById('answerSection');
+    const answerInput = document.getElementById('answerInput');
+    const submitAnswer = document.getElementById('submitAnswer');
+    const resultMessage = document.getElementById('resultMessage');
+
+    let isDrawing = false;
+    let activePanel = null;
+
+    panels.forEach(panel => {
+      const canvas = document.getElementById(panel.id);
+      const ctx = canvas.getContext('2d');
+      panel.canvas = canvas;
+      panel.ctx = ctx;
+      panel.path = [];
+
+      drawGuide(panel);
+
+      canvas.addEventListener('pointerdown', e => {
+        if (panel.drawn) return;
+        isDrawing = true;
+        activePanel = panel;
+        const rect = canvas.getBoundingClientRect();
+        panel.path = [[e.clientX - rect.left, e.clientY - rect.top]];
+      });
+
+      canvas.addEventListener('pointermove', e => {
+        if (!isDrawing || activePanel !== panel) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        panel.path.push([x, y]);
+        redraw(panel);
+      });
+
+      canvas.addEventListener('pointerup', e => {
+        if (!isDrawing || activePanel !== panel) return;
+        isDrawing = false;
+
+        const last = panel.path[panel.path.length - 1];
+        if (isAtEnd(last, panel.guidePoints)) {
+          panel.drawn = true;
+          screenImage.src = imageSources[panel.index];
+          screenImage.style.display = 'block';
+          answerSection.style.display = 'flex';
+          answerInput.value = '';
+          resultMessage.textContent = '';
+        } else {
+          panel.path = [];
+          drawGuide(panel);
+          screenImage.src = '';
+          answerSection.style.display = 'none';
+        }
+      });
+    });
+
+    function drawGuide(panel) {
+      const ctx = panel.ctx;
+      ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(...panel.guidePoints[0]);
+      ctx.lineTo(...panel.guidePoints[1]);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
+
+    function redraw(panel) {
+      drawGuide(panel);
+      const ctx = panel.ctx;
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(...panel.path[0]);
+      for (let i = 1; i < panel.path.length; i++) {
+        ctx.lineTo(...panel.path[i]);
+      }
+      ctx.stroke();
+    }
+
+    function isAtEnd(lastPoint, guidePoints) {
+      const [ex, ey] = guidePoints[1];
+      const dx = lastPoint[0] - ex;
+      const dy = lastPoint[1] - ey;
+      return Math.sqrt(dx * dx + dy * dy) < 20;
+    }
+
+    submitAnswer.addEventListener('click', () => {
+      const currentImage = screenImage.src.split('/').pop();
+      const userAnswer = answerInput.value.trim().toLowerCase();
+      const correct = correctAnswers[currentImage];
+      if (!correct) {
+        resultMessage.textContent = "画像が未設定です。";
+        resultMessage.style.color = "orange";
+        return;
+      }
+      if (userAnswer === correct) {
+        resultMessage.textContent = "正解です！";
+        resultMessage.style.color = "lime";
+      } else {
+        resultMessage.textContent = "不正解です。";
+        resultMessage.style.color = "red";
+      }
+    });
   </script>
 </body>
 </html>
