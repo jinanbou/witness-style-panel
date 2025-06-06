@@ -1,68 +1,68 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WitnessSystem</title>
-<style>
-  body {
-    margin: 0; padding: 0;
-    background: #222;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100vh;
-    color: white;
-    user-select: none;
-  }
-  #screen {
-    width: 70vw;
-    height: 50vh;
-    background: #333;
-    margin-top: 20px;
-    border: 3px solid #888;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  #screen img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-  #answerArea {
-    margin-top: 20px;
-    display: none;
-  }
-  #answerInput {
-    padding: 5px 10px;
-    font-size: 16px;
-  }
-  #submitBtn {
-    padding: 5px 12px;
-    font-size: 16px;
-    margin-left: 8px;
-    cursor: pointer;
-  }
-  .container {
-    margin-top: 30px;
-    display: flex;
-    gap: 20px;
-  }
-  .panel {
-    position: relative;
-    width: calc(70vw / 4);
-    height: 120px;
-    background: #ccc;
-    border: 2px solid #888;
-  }
-  canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    touch-action: none;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WitnessSystem</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      background: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      user-select: none;
+    }
+    #screen {
+      width: 70vw;
+      height: 50vh;
+      background: #333;
+      margin-top: 20px;
+      border: 3px solid #888;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #screen img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    #answerArea {
+      margin-top: 20px;
+      display: none;
+    }
+    #answerInput {
+      padding: 5px 10px;
+      font-size: 16px;
+    }
+    #submitBtn {
+      padding: 5px 12px;
+      font-size: 16px;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+    .container {
+      margin-top: 30px;
+      display: flex;
+      gap: 20px;
+    }
+    .panel {
+      position: relative;
+      width: calc(70vw / 4);
+      height: 120px;
+      background: #ccc;
+      border: 2px solid #888;
+    }
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      touch-action: none;
+    }
+  </style>
 </head>
 <body>
 
@@ -106,7 +106,10 @@
       guidePoints.push({x: x + marginX, y});
     }
 
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
+    return {
+      panel, canvas, ctx, guidePoints,
+      path: [], drawn: false, index: i, enabled: i === 0 // 最初のパネルだけ有効
+    };
   });
 
   const screenImage = document.getElementById('screenImage');
@@ -115,37 +118,58 @@
   const submitBtn = document.getElementById('submitBtn');
   const resultMessage = document.getElementById('resultMessage');
 
-  const imageSources = [
-    "image1.jpeg",
-    "image2.png",
-    "image3.png"
-  ];
-  const answers = [
-    "りんご",
-    "みかん",
-    "ぶどう"
-  ];
+  const imageSources = ["image1.jpeg", "image2.png", "image3.png"];
+  const answers = ["りんご", "みかん", "ぶどう"];
 
   function drawGuide(panel) {
+  const ctx = panel.ctx;
+  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+
+  if (!panel.enabled) {
+    // ロック状態：真っ黒なパネルにする
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
+    return;
+  }
+
+  // 有効状態：ガイド線を表示
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  const pts = panel.guidePoints;
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    ctx.lineTo(pts[i].x, pts[i].y);
+  }
+  ctx.stroke();
+
+  const start = panel.guidePoints[0];
+  ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
+  ctx.beginPath();
+  ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+
+  function drawLine(panel){
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    ctx.strokeStyle = '#fff';
+    drawGuide(panel);
+    if(panel.path.length < 2) return;
+    ctx.strokeStyle = '#3ad';
     ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
     ctx.beginPath();
-    const pts = panel.guidePoints;
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for(let i=1; i<pts.length; i++){
-      ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.moveTo(panel.path[0].x, panel.path[0].y);
+    for(let i=1; i<panel.path.length; i++){
+      ctx.lineTo(panel.path[i].x, panel.path[i].y);
     }
     ctx.stroke();
+  }
 
-    const start = panel.guidePoints[0];
-    ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
-    ctx.beginPath();
-    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
-    ctx.fill();
+  function drawAllGuides(){
+    panels.forEach(drawGuide);
   }
 
   function dist2(a,b){
@@ -167,30 +191,6 @@
     return closest;
   }
 
-  function drawLine(panel){
-    const ctx = panel.ctx;
-    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    drawGuide(panel);
-    if(panel.path.length < 2) return;
-    ctx.strokeStyle = '#3ad';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(panel.path[0].x, panel.path[0].y);
-    for(let i=1; i<panel.path.length; i++){
-      ctx.lineTo(panel.path[i].x, panel.path[i].y);
-    }
-    ctx.stroke();
-  }
-
-  function drawAllGuides(){
-    panels.forEach(drawGuide);
-  }
-
-  let activePanel = null;
-  let isDrawing = false;
-
   function isAtEnd(point, guidePoints){
     const end = guidePoints[guidePoints.length - 1];
     return (point.x === end.x && point.y === end.y);
@@ -206,12 +206,16 @@
     } else {
       screenImage.src = '';
       answerArea.style.display = 'none';
-      resultMessage.textContent = '';
     }
   }
 
+  let activePanel = null;
+  let isDrawing = false;
+
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
+      if (!panel.enabled) return;
+
       activePanel = panel;
       isDrawing = true;
 
@@ -228,8 +232,7 @@
     });
 
     panel.canvas.addEventListener('pointermove', e => {
-      if(!isDrawing || activePanel !== panel) return;
-
+      if(!isDrawing || activePanel !== panel || !panel.enabled) return;
       const rect = panel.canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
@@ -242,7 +245,7 @@
     });
 
     panel.canvas.addEventListener('pointerup', e => {
-      if(!isDrawing || activePanel !== panel) return;
+      if(!isDrawing || activePanel !== panel || !panel.enabled) return;
       isDrawing = false;
 
       const last = panel.path[panel.path.length - 1];
@@ -265,6 +268,15 @@
     if (input === correct) {
       resultMessage.textContent = '正解です！';
       resultMessage.style.color = 'lime';
+      drawnPanel.enabled = false;
+
+      const nextPanel = panels[drawnPanel.index + 1];
+      if (nextPanel) {
+        nextPanel.enabled = true;
+        nextPanel.path = [];
+        nextPanel.drawn = false;
+        drawGuide(nextPanel);
+      }
     } else {
       resultMessage.textContent = '';
     }
