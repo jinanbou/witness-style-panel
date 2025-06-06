@@ -51,11 +51,12 @@
   .answer-box {
     display: none;
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
     background-color: rgba(0, 0, 0, 0.8);
     padding: 10px;
     border-radius: 5px;
+    z-index: 10;
   }
 </style>
 </head>
@@ -124,7 +125,7 @@
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
     if (!panel.enabled) {
-      ctx.fillStyle = 'black';
+      ctx.fillStyle = 'black';  // パネルがロックされているときは完全に黒く
       ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
       return;
     }
