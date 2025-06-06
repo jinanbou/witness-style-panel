@@ -1,5 +1,4 @@
 <!DOCTYPE html> 
-
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
@@ -31,11 +30,24 @@
     max-height: 100%;
     object-fit: contain;
   }
+  #answerArea {
+    margin-top: 20px;
+    display: none;
+  }
+  #answerInput {
+    padding: 5px 10px;
+    font-size: 16px;
+  }
+  #submitBtn {
+    padding: 5px 12px;
+    font-size: 16px;
+    margin-left: 8px;
+    cursor: pointer;
+  }
   .container {
     margin-top: 30px;
     display: flex;
     gap: 20px;
-    position: relative;
   }
   .panel {
     position: relative;
@@ -50,21 +62,6 @@
     width: 100%; height: 100%;
     touch-action: none;
   }
-
-  /* 解答欄スタイル */
-  #answerArea {
-    display: none; /* 初期は非表示 */
-    position: absolute;
-    bottom: -80px; /* パネルの下に表示 */
-    width: 100%;
-    color: #222;
-    background: #fff;
-    padding: 10px;
-    font-size: 18px;
-    border-radius: 6px;
-    box-shadow: 0 0 8px #0008;
-    user-select: text;
-  }
 </style>
 </head>
 <body>
@@ -73,13 +70,18 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
+<div id="answerArea">
+  <form id="answerForm" onsubmit="return false;">
+    <input id="answerInput" type="text" placeholder="ここに解答を入力" />
+    <button id="submitBtn">送信</button>
+    <span id="resultMessage" style="margin-left: 10px;"></span>
+  </form>
+</div>
+
 <div class="container">
   <div class="panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
-
-  <!-- 解答欄は一番右のパネルの下に絶対配置 -->
-  <div id="answerArea"></div>
 </div>
 
 <script>
@@ -96,7 +98,6 @@
     const amplitude = h / 16;
     const centerY = h / 2;
 
-    // ガイド点作成
     const guidePoints = [];
     const step = w / 50;
     for(let x=0; x<=w; x+=step){
@@ -110,19 +111,19 @@
 
   const screenImage = document.getElementById('screenImage');
   const answerArea = document.getElementById('answerArea');
+  const answerInput = document.getElementById('answerInput');
+  const submitBtn = document.getElementById('submitBtn');
+  const resultMessage = document.getElementById('resultMessage');
 
-  // 画像はこの順番
   const imageSources = [
     "image1.jpeg",
     "image2.png",
     "image3.png"
   ];
-
-  // 解答欄のテキスト（パネル毎に）
   const answers = [
-    "comment",
-    "visits",
-    "helps"
+    "りんご",
+    "みかん",
+    "ぶどう"
   ];
 
   function drawGuide(panel) {
@@ -140,7 +141,6 @@
     }
     ctx.stroke();
 
-    // 左端に丸を描く（スタート地点）
     const start = panel.guidePoints[0];
     ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
     ctx.beginPath();
@@ -174,8 +174,8 @@
     if(panel.path.length < 2) return;
     ctx.strokeStyle = '#3ad';
     ctx.lineWidth = 6;
-    ctx.lineCap = 'round';   // 端を丸く
-    ctx.lineJoin = 'round';  // 角も丸く
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(panel.path[0].x, panel.path[0].y);
     for(let i=1; i<panel.path.length; i++){
@@ -196,17 +196,17 @@
     return (point.x === end.x && point.y === end.y);
   }
 
-  // 解答欄＆画像の表示切り替え管理
-  function updateAnswerAreaVisibility() {
-    const drawnPanel = panels.find(panel => panel.drawn);
-    if(drawnPanel){
-      answerArea.style.display = 'block';
-      answerArea.textContent = answers[drawnPanel.index];
+  function updateDisplay() {
+    const drawnPanel = panels.find(p => p.drawn);
+    if (drawnPanel) {
       screenImage.src = imageSources[drawnPanel.index];
+      answerArea.style.display = 'block';
+      answerInput.value = '';
+      resultMessage.textContent = '';
     } else {
-      answerArea.style.display = 'none';
-      answerArea.textContent = '';
       screenImage.src = '';
+      answerArea.style.display = 'none';
+      resultMessage.textContent = '';
     }
   }
 
@@ -215,7 +215,6 @@
       activePanel = panel;
       isDrawing = true;
 
-      // 他のパネルの線は消す
       panels.forEach(p => {
         if(p !== panel){
           p.path = [];
@@ -224,18 +223,7 @@
         }
       });
 
-      // 線引き中は画像と解答欄非表示に
-      screenImage.src = '';
-      answerArea.style.display = 'none';
-
-      const rect = panel.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-
-      // スタートは必ず左端の丸から
-      const startPoint = panel.guidePoints[0];
-      panel.path = [startPoint];
-
+      panel.path = [panel.guidePoints[0]];
       drawLine(panel);
     });
 
@@ -263,11 +251,23 @@
       } else {
         panel.path = [];
         panel.drawn = false;
-        drawGuide(panel);
       }
-
-      updateAnswerAreaVisibility();
+      drawGuide(panel);
+      updateDisplay();
     });
+  });
+
+  submitBtn.addEventListener('click', () => {
+    const input = answerInput.value.trim().toLowerCase();
+    const drawnPanel = panels.find(p => p.drawn);
+    if (!drawnPanel) return;
+    const correct = answers[drawnPanel.index].toLowerCase();
+    if (input === correct) {
+      resultMessage.textContent = '正解です！';
+      resultMessage.style.color = 'lime';
+    } else {
+      resultMessage.textContent = '';
+    }
   });
 
   drawAllGuides();
