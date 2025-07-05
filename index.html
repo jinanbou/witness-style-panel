@@ -66,10 +66,10 @@
   .panel {
     position: relative;
     flex: 1 1 0;
-    aspect-ratio: 7 / 3; /* 横7:縦3 の比率を維持 */
+    aspect-ratio: 7 / 3;
     background: #ccc;
     border: 2px solid #888;
-    min-width: 150px; /* 最小幅確保 */
+    min-width: 150px;
     transition: background-color 0.3s ease;
   }
   .panel.locked {
@@ -254,18 +254,18 @@
   }
 
   function updateImageButtons(){
-    // 画像1は常時有効
     imgBtn1.disabled = false;
-    // 画像2は画像1正解済みで有効
     imgBtn2.disabled = !imageCleared[0];
-    // 画像3は画像2正解済みで有効
     imgBtn3.disabled = !imageCleared[1];
   }
 
   function updatePanelLock(){
-    // パネル2はパネル1クリアしていないとロック（黒背景）
     if(!panelCleared[0]){
       panels[1].panel.classList.add('locked');
+      // パネル2の線も消す
+      panels[1].path = [];
+      panels[1].drawn = false;
+      drawGuide(panels[1]);
     } else {
       panels[1].panel.classList.remove('locked');
     }
@@ -273,9 +273,8 @@
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-      // パネル2はパネル1クリアしていないと線引き不可
+      // パネル2ロック時は何もしない（警告もなし）
       if(panel.index === 1 && !panelCleared[0]){
-        alert('パネル2はパネル1を正解すると線が引けます。');
         return;
       }
       activePanel = panel;
@@ -350,7 +349,6 @@
     if(e.target.tagName !== 'BUTTON') return;
     const img = e.target.getAttribute('data-img');
     if(img){
-      // 押されたボタンが無効(disabled)なら無視
       if(e.target.disabled) return;
       screenImage.src = img;
     }
@@ -362,10 +360,20 @@
       if(currentPanelIndex === null) return;
       const userAns = answerInput.value.trim().toLowerCase();
 
-      // 画像が表示されていれば画像の答えで判定、それ以外はパネルの答えで判定
-      const isImageShown = screenImage.src && !screenImage.src.includes(window.location.href) && screenImage.src !== "";
+      const isImageShown = imageSources[2].includes(screenImage.src.split('/').pop()) || imageSources.slice(0,2).includes(screenImage.src.split('/').pop());
+
       if(isImageShown){
-        if(userAns === imageAnswers[currentPanelIndex]){
+        const imgFile = screenImage.src.split('/').pop();
+        let correct = false;
+        if(currentPanelIndex === 2){
+          // 3枚目は3種類の画像のどれかで判定
+          const idx = imageSources[2].indexOf(imgFile);
+          if(idx >= 0 && userAns === imageAnswers[idx]) correct = true;
+        } else {
+          // 1,2枚目画像は1枚ずつ
+          if(userAns === imageAnswers[currentPanelIndex]) correct = true;
+        }
+        if(correct){
           alert('正解です！');
           imageCleared[currentPanelIndex] = true;
           updateImageButtons();
