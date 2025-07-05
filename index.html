@@ -133,7 +133,6 @@
     const amplitude = h / 16;
     const centerY = h / 2;
 
-    // ガイド点作成
     const guidePoints = [];
     const step = w / 50;
     for(let x=0; x<=w; x+=step){
@@ -154,10 +153,7 @@
   const imgBtn2 = document.getElementById('imgBtn2');
   const imgBtn3 = document.getElementById('imgBtn3');
 
-  // 画像ごとの正解（小文字化済み）
   const imageAnswers = ["burglary", "alley", "fetching"];
-
-  // パネルごとの正解（小文字化済み）
   const panelAnswers = ["visits", "comment", "helps"];
 
   const imageSources = [
@@ -166,7 +162,6 @@
     ["image3_1.png", "image3_2.png", "image3_3.png"]
   ];
 
-  // 正解済み管理
   let imageCleared = [false, false, false];
   let panelCleared = [false, false, false];
 
@@ -185,7 +180,6 @@
     }
     ctx.stroke();
 
-    // 左端に丸を描く（スタート地点）
     const start = panel.guidePoints[0];
     ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
     ctx.beginPath();
@@ -244,7 +238,7 @@
 
   function updateAnswerVisibility(){
     const anyDrawn = panels.some(p => p.drawn);
-    const imgVisible = screenImage.src && !screenImage.src.includes(window.location.href) && screenImage.src !== "";
+    const imgVisible = screenImage.src && screenImage.src !== "" && !screenImage.src.includes(window.location.href);
     if(anyDrawn || imgVisible){
       answerContainer.style.display = 'block';
     } else {
@@ -262,18 +256,19 @@
   function updatePanelLock(){
     if(!panelCleared[0]){
       panels[1].panel.classList.add('locked');
-      // パネル2の線も消す
+      // パネル2の線を消す（ロック時）
       panels[1].path = [];
       panels[1].drawn = false;
-      drawGuide(panels[1]);
+      panels[1].ctx.clearRect(0,0, panels[1].canvas.width, panels[1].canvas.height);
     } else {
       panels[1].panel.classList.remove('locked');
+      drawGuide(panels[1]);
     }
   }
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-      // パネル2ロック時は何もしない（警告もなし）
+      // パネル2ロック時は無視
       if(panel.index === 1 && !panelCleared[0]){
         return;
       }
@@ -344,7 +339,6 @@
     });
   });
 
-  // 3枚目画像切替ボタン
   imageButtons.addEventListener('click', e => {
     if(e.target.tagName !== 'BUTTON') return;
     const img = e.target.getAttribute('data-img');
@@ -354,40 +348,30 @@
     }
   });
 
-  // 解答判定
   answerInput.addEventListener('keydown', e => {
     if(e.key === 'Enter'){
       if(currentPanelIndex === null) return;
       const userAns = answerInput.value.trim().toLowerCase();
 
-      const isImageShown = imageSources[2].includes(screenImage.src.split('/').pop()) || imageSources.slice(0,2).includes(screenImage.src.split('/').pop());
-
-      if(isImageShown){
-        const imgFile = screenImage.src.split('/').pop();
-        let correct = false;
-        if(currentPanelIndex === 2){
-          // 3枚目は3種類の画像のどれかで判定
-          const idx = imageSources[2].indexOf(imgFile);
-          if(idx >= 0 && userAns === imageAnswers[idx]) correct = true;
-        } else {
-          // 1,2枚目画像は1枚ずつ
-          if(userAns === imageAnswers[currentPanelIndex]) correct = true;
-        }
-        if(correct){
+      // 画像の正解判定はパネル3選択中＆画像1のみ
+      if(currentPanelIndex === 2 && screenImage.src.split('/').pop() === "image3_1.png"){
+        if(userAns === imageAnswers[0]){
           alert('正解です！');
-          imageCleared[currentPanelIndex] = true;
+          imageCleared[0] = true;
           updateImageButtons();
         } else {
           alert('不正解です。');
         }
+        return;
+      }
+
+      // それ以外はパネル回答判定
+      if(userAns === panelAnswers[currentPanelIndex]){
+        alert('正解です！');
+        panelCleared[currentPanelIndex] = true;
+        updatePanelLock();
       } else {
-        if(userAns === panelAnswers[currentPanelIndex]){
-          alert('正解です！');
-          panelCleared[currentPanelIndex] = true;
-          updatePanelLock();
-        } else {
-          alert('不正解です。');
-        }
+        alert('不正解です。');
       }
     }
   });
