@@ -45,6 +45,9 @@
     border: 2px solid #888;
     user-select: none;
   }
+  .panel.locked {
+    background: #000 !important;
+  }
   canvas {
     position: absolute;
     top: 0; left: 0;
@@ -84,6 +87,8 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
+<input type="text" id="answerInput" placeholder="答えを入力" />
+
 <div id="stageButtons">
   <div class="stage-btn" data-index="0">ステージ1</div>
   <div class="stage-btn" data-index="1">ステージ2</div>
@@ -96,22 +101,32 @@
   <div class="panel"><canvas></canvas></div>
 </div>
 
-<input type="text" id="answerInput" placeholder="答えを入力" />
-
 <script>
-  // ... 全スクリプト部分は省略しますが、次の関数を修正します：
+  function showAnswerInputIfNeeded() {
+    const answerInput = document.getElementById('answerInput');
+    const stageButtons = document.getElementById('stageButtons');
 
-  function showAnswerInputIfNeeded(){
-    if(currentImageIndex !== null || anyPanelDrawn()){
+    const anyPanelDrawn = [...document.querySelectorAll('.panel canvas')].some(canvas => {
+      const ctx = canvas.getContext('2d');
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      return data.some(value => value !== 0);
+    });
+
+    const currentImage = document.getElementById('screenImage').src;
+    const imageVisible = currentImage && !currentImage.endsWith('/');
+
+    if (imageVisible || anyPanelDrawn) {
       answerInput.style.display = 'block';
-      document.getElementById('stageButtons').style.display = 'flex';
+      stageButtons.style.display = 'flex';
     } else {
       answerInput.style.display = 'none';
-      document.getElementById('stageButtons').style.display = 'none';
+      stageButtons.style.display = 'none';
     }
   }
 
-  // その他コード（drawLineやdrawAllGuidesなど）はそのまま
+  window.onload = () => {
+    showAnswerInputIfNeeded();
+  };
 </script>
 
 </body>
