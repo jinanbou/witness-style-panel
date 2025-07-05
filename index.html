@@ -78,13 +78,14 @@
 </div>
 
 <div class="screen witness-view" id="witnessView">
-  <iframe src="witness.html" width="100%" height="100%" style="border: none;"></iframe>
+  <iframe id="witnessFrame" src="witness.html" width="100%" height="100%" style="border: none;"></iframe>
 </div>
 
 <script>
   const stageSelect = document.getElementById('stageSelect');
   const stageView = document.getElementById('stageView');
   const witnessView = document.getElementById('witnessView');
+  const witnessFrame = document.getElementById('witnessFrame');
 
   const imageDisplay = document.getElementById('imageDisplay');
   const answerInput = document.getElementById('answerInput');
@@ -102,7 +103,7 @@
     { image: 'image3.png', answer: 'fetching' }
   ];
 
-  const mapAnswer = 'helps'; // ← マップの正解ワード
+  const mapAnswer = 'helps';
   let mapUnlocked = false;
 
   stage1Btn.addEventListener('click', () => enterStage(0));
@@ -146,6 +147,14 @@
       } else {
         alert('違います');
       }
+    }
+  });
+
+  // メッセージ受信で戻る処理
+  window.addEventListener('message', (event) => {
+    if (event.data === 'backToStageSelect') {
+      witnessView.classList.remove('active');
+      stageSelect.classList.add('active');
     }
   });
 </script>
