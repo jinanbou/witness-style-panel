@@ -49,7 +49,11 @@
     cursor: pointer;
     border-radius: 4px;
   }
-  #imageButtons button:hover {
+  #imageButtons button:disabled {
+    background-color: #666;
+    cursor: default;
+  }
+  #imageButtons button:hover:enabled {
     background-color: #269;
   }
   .container {
@@ -95,9 +99,9 @@
 <div id="screen">
   <img id="screenImage" src="" alt="Selected Image" />
   <div id="imageButtons">
-    <button data-img="image3_1.png">画像1</button>
-    <button data-img="image3_2.png">画像2</button>
-    <button data-img="image3_3.png">画像3</button>
+    <button data-img="image3_1.png" id="imgBtn1">画像1</button>
+    <button data-img="image3_2.png" id="imgBtn2">画像2</button>
+    <button data-img="image3_3.png" id="imgBtn3">画像3</button>
   </div>
 </div>
 
@@ -142,10 +146,14 @@
   const answerContainer = document.getElementById('answerContainer');
   const answerInput = document.getElementById('answerInput');
 
-  // 画像ごとの正解（大文字小文字区別なし）
+  const imgBtn1 = document.getElementById('imgBtn1');
+  const imgBtn2 = document.getElementById('imgBtn2');
+  const imgBtn3 = document.getElementById('imgBtn3');
+
+  // 画像ごとの正解（小文字化済み）
   const imageAnswers = ["burglary", "alley", "fetching"];
 
-  // パネルごとの正解（大文字小文字区別なし）
+  // パネルごとの正解（小文字化済み）
   const panelAnswers = ["visits", "comment", "helps"];
 
   const imageSources = [
@@ -153,6 +161,10 @@
     "image2.png",
     ["image3_1.png", "image3_2.png", "image3_3.png"]
   ];
+
+  // 正解済み管理
+  let imageCleared = [false, false, false];
+  let panelCleared = [false, false, false];
 
   function drawGuide(panel) {
     const ctx = panel.ctx;
@@ -227,7 +239,6 @@
   }
 
   function updateAnswerVisibility(){
-    // いずれかのパネルに線が引かれている or 画像が表示されている場合は解答欄表示
     const anyDrawn = panels.some(p => p.drawn);
     const imgVisible = screenImage.src && !screenImage.src.endsWith(window.location.href) && screenImage.src !== "";
     if(anyDrawn || imgVisible){
@@ -238,8 +249,22 @@
     }
   }
 
+  function updateImageButtons(){
+    // 画像1は常時有効
+    imgBtn1.disabled = false;
+    // 画像2は画像1正解済みで有効
+    imgBtn2.disabled = !imageCleared[0];
+    // 画像3は画像2正解済みで有効
+    imgBtn3.disabled = !imageCleared[1];
+  }
+
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
+      // パネル2はパネル1クリアしていないと線引き不可
+      if(panel.index === 1 && !panelCleared[0]){
+        alert('パネル2はパネル1を正解すると線が引けます。');
+        return;
+      }
       activePanel = panel;
       isDrawing = true;
 
@@ -290,6 +315,7 @@
         if(panel.index === 2){
           screenImage.src = imageSources[2][0];
           imageButtons.style.display = 'block';
+          updateImageButtons();
         } else {
           screenImage.src = imageSources[panel.index];
           imageButtons.style.display = 'none';
@@ -311,6 +337,8 @@
     if(e.target.tagName !== 'BUTTON') return;
     const img = e.target.getAttribute('data-img');
     if(img){
+      // 押されたボタンが無効(disabled)なら無視
+      if(e.target.disabled) return;
       screenImage.src = img;
     }
   });
@@ -326,14 +354,17 @@
       if(isImageShown){
         if(userAns === imageAnswers[currentPanelIndex]){
           alert('正解です！');
-          // 必要ならここに正解時処理
+          imageCleared[currentPanelIndex] = true;
+          updateImageButtons();
+          // 画像をクリアしてもパネルの線は残す
         } else {
           alert('不正解です。');
         }
       } else {
         if(userAns === panelAnswers[currentPanelIndex]){
           alert('正解です！');
-          // 必要ならここに正解時処理
+          panelCleared[currentPanelIndex] = true;
+          // パネル1クリアでパネル2開放はポインターイベントで制御済み
         } else {
           alert('不正解です。');
         }
@@ -342,6 +373,7 @@
   });
 
   drawAllGuides();
+  updateImageButtons();
 </script>
 
 </body>
