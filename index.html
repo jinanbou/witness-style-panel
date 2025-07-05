@@ -31,31 +31,6 @@
     max-height: 100%;
     object-fit: contain;
   }
-  #answerInput {
-    margin-top: 10px;
-    padding: 10px;
-    font-size: 16px;
-    width: 70vw;
-    max-width: 600px;
-    box-sizing: border-box;
-    display: none;
-  }
-  #stageButtons {
-    margin-top: 10px;
-    display: none;
-    justify-content: center;
-    gap: 15px;
-  }
-  .stage-btn {
-    background: #444;
-    border: 2px solid #888;
-    color: white;
-    padding: 6px 12px;
-    cursor: pointer;
-    user-select: none;
-    font-size: 14px;
-    border-radius: 4px;
-  }
   .container {
     margin-top: 10px;
     display: flex;
@@ -84,14 +59,6 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
-<input type="text" id="answerInput" placeholder="答えを入力" />
-
-<div id="stageButtons">
-  <div class="stage-btn" data-index="0">ステージ1</div>
-  <div class="stage-btn" data-index="1">ステージ2</div>
-  <div class="stage-btn" data-index="2">ステージ3</div>
-</div>
-
 <div class="container">
   <div class="panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
@@ -99,87 +66,141 @@
 </div>
 
 <script>
-  const answerInput = document.getElementById('answerInput');
-  const screenImage = document.getElementById('screenImage');
-  const stageButtons = document.getElementById('stageButtons');
-  const panels = Array.from(document.querySelectorAll('.panel'));
+const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
+  const canvas = panel.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  const rect = panel.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
 
-  function anyPanelDrawn() {
-    return panels.some(p => p.classList.contains('drawn'));
+  const marginX = 20;
+  const w = canvas.width - marginX * 2;
+  const h = canvas.height;
+  const amplitude = h / 16;
+  const centerY = h / 2;
+
+  // ガイド点作成
+  const guidePoints = [];
+  const step = w / 50;
+  for(let x=0; x<=w; x+=step){
+    const theta = (x / w) * 2 * Math.PI;
+    const y = centerY - amplitude * Math.sin(theta);
+    guidePoints.push({x: x + marginX, y});
   }
 
-  function showAnswerInputIfNeeded() {
-    if (screenImage.src && screenImage.src !== window.location.href) {
-      answerInput.style.display = 'block';
-      stageButtons.style.display = 'flex';
-    } else if (anyPanelDrawn()) {
-      answerInput.style.display = 'block';
-      stageButtons.style.display = 'flex';
-    } else {
-      answerInput.style.display = 'none';
-      stageButtons.style.display = 'none';
+  return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
+});
+
+function drawGuide(panel) {
+  const ctx = panel.ctx;
+  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  const pts = panel.guidePoints;
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for(let i=1; i<pts.length; i++){
+    ctx.lineTo(pts[i].x, pts[i].y);
+  }
+  ctx.stroke();
+
+  // 左端に丸を描く（スタート地点）
+  const start = panel.guidePoints[0];
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+function dist2(a,b){
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx*dx + dy*dy;
+}
+
+function snapToGuide(x, y, guidePoints){
+  let minDist = Infinity;
+  let closest = guidePoints[0];
+  for(const pt of guidePoints){
+    const d = dist2(pt, {x,y});
+    if(d < minDist){
+      minDist = d;
+      closest = pt;
     }
   }
+  return closest;
+}
 
-  const panelStates = panels.map(panel => {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+function drawLine(panel){
+  const ctx = panel.ctx;
+  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+  drawGuide(panel);
+  if(panel.path.length < 2) return;
+  ctx.strokeStyle = '#3ad';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(panel.path[0].x, panel.path[0].y);
+  for(let i=1; i<panel.path.length; i++){
+    ctx.lineTo(panel.path[i].x, panel.path[i].y);
+  }
+  ctx.stroke();
+}
 
-    const state = {
-      canvas, ctx,
-      path: [],
-      drawing: false,
-      panel
-    };
+function drawAllGuides(){
+  panels.forEach(drawGuide);
+}
 
-    canvas.addEventListener('pointerdown', e => {
-      state.drawing = true;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      state.path = [{ x, y }];
-    });
+let activePanel = null;
+let isDrawing = false;
 
-    canvas.addEventListener('pointermove', e => {
-      if (!state.drawing) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      state.path.push({ x, y });
-      redraw(state);
-    });
+panels.forEach(panel => {
+  panel.canvas.addEventListener('pointerdown', e => {
+    activePanel = panel;
+    isDrawing = true;
 
-    canvas.addEventListener('pointerup', () => {
-      state.drawing = false;
-      if (state.path.length > 1) {
-        panel.classList.add('drawn');
-        showAnswerInputIfNeeded();
+    panels.forEach(p => {
+      if(p !== panel){
+        p.path = [];
+        p.drawn = false;
+        drawGuide(p);
       }
     });
 
-    function redraw(state) {
-      const ctx = state.ctx;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (state.path.length < 2) return;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = '#3ad';
-      ctx.beginPath();
-      ctx.moveTo(state.path[0].x, state.path[0].y);
-      for (let i = 1; i < state.path.length; i++) {
-        ctx.lineTo(state.path[i].x, state.path[i].y);
-      }
-      ctx.stroke();
-    }
+    const rect = panel.canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
 
-    return state;
+    const startPoint = panel.guidePoints[0];
+    panel.path = [startPoint];
+
+    drawLine(panel);
   });
 
-  showAnswerInputIfNeeded();
+  panel.canvas.addEventListener('pointermove', e => {
+    if(!isDrawing || activePanel !== panel) return;
+
+    const rect = panel.canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const snap = snapToGuide(mx, my, panel.guidePoints);
+    const last = panel.path[panel.path.length - 1];
+    if(snap !== last){
+      panel.path.push(snap);
+      drawLine(panel);
+    }
+  });
+
+  panel.canvas.addEventListener('pointerup', () => {
+    if(!isDrawing || activePanel !== panel) return;
+    isDrawing = false;
+  });
+});
+
+drawAllGuides();
 </script>
 
 </body>
