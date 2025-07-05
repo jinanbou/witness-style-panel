@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Witness System</title>
+<title>WitnessSystem</title>
 <style>
   body {
     margin: 0; padding: 0;
@@ -17,36 +17,54 @@
   }
   #screen {
     width: 70vw;
+    max-width: 1000px;
     height: 50vh;
+    max-height: 600px;
     background: #333;
     margin-top: 20px;
     border: 3px solid #888;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
   }
   #screen img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
   }
+  #imageButtons {
+    margin-top: 10px;
+    display: none;
+    text-align: center;
+  }
+  #imageButtons button {
+    background-color: #3ad;
+    border: none;
+    color: white;
+    margin: 0 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  #imageButtons button:hover {
+    background-color: #269;
+  }
   .container {
     margin-top: 30px;
     display: flex;
     gap: 20px;
     width: 70vw;
-    max-width: 100%;
-    justify-content: center;
+    max-width: 1000px;
   }
   .panel {
     position: relative;
     flex: 1 1 0;
-    max-width: calc((70vw - 40px) / 3); /* 70vwからgap2つの40pxを引いて3分割 */
-    aspect-ratio: 3 / 1; /* 横3:縦1の比率固定 */
+    aspect-ratio: 7 / 3; /* 横7:縦3 の比率を維持 */
     background: #ccc;
     border: 2px solid #888;
-    min-width: 150px;
-    min-height: 50px; /* aspect-ratioで高さは自動 */
+    min-width: 150px; /* 最小幅確保 */
   }
   canvas {
     position: absolute;
@@ -60,6 +78,11 @@
 
 <div id="screen">
   <img id="screenImage" src="" alt="Selected Image" />
+  <div id="imageButtons">
+    <button data-img="image3_1.png">画像1</button>
+    <button data-img="image3_2.png">画像2</button>
+    <button data-img="image3_3.png">画像3</button>
+  </div>
 </div>
 
 <div class="container">
@@ -72,15 +95,9 @@
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
     const canvas = panel.querySelector('canvas');
     const ctx = canvas.getContext('2d');
-
-    // パネルサイズに合わせてキャンバス解像度設定（初期とリサイズ時用）
-    function resizeCanvas() {
-      const rect = panel.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    const rect = panel.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
 
     const marginX = 20;
     const w = canvas.width - marginX * 2;
@@ -97,14 +114,17 @@
       guidePoints.push({x: x + marginX, y});
     }
 
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i, resizeCanvas };
+    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
   });
 
   const screenImage = document.getElementById('screenImage');
+  const imageButtons = document.getElementById('imageButtons');
+
+  // 画像ソース配列（3枚目は配列で複数画像）
   const imageSources = [
     "image1.jpeg",
     "image2.png",
-    "image3.png"
+    ["image3_1.png", "image3_2.png", "image3_3.png"]
   ];
 
   function drawGuide(panel) {
@@ -156,8 +176,8 @@
     if(panel.path.length < 2) return;
     ctx.strokeStyle = '#3ad';
     ctx.lineWidth = 6;
-    ctx.lineCap = 'round';   // 端を丸く
-    ctx.lineJoin = 'round';  // 角も丸く
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.beginPath();
     ctx.moveTo(panel.path[0].x, panel.path[0].y);
     for(let i=1; i<panel.path.length; i++){
@@ -192,12 +212,12 @@
       });
 
       screenImage.src = '';
+      imageButtons.style.display = 'none';
 
       const rect = panel.canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
 
-      // スタートは必ず左端の丸（guidePointsの0番目）からスタート
       const startPoint = panel.guidePoints[0];
       panel.path = [startPoint];
 
@@ -225,33 +245,30 @@
       const last = panel.path[panel.path.length - 1];
       if(isAtEnd(last, panel.guidePoints)){
         panel.drawn = true;
-        screenImage.src = imageSources[panel.index];
+        if(panel.index === 2){
+          // 3枚目の特殊動作：初期画像とボタン表示
+          screenImage.src = imageSources[2][0];
+          imageButtons.style.display = 'block';
+        } else {
+          screenImage.src = imageSources[panel.index];
+          imageButtons.style.display = 'none';
+        }
       } else {
         panel.path = [];
         drawGuide(panel);
         screenImage.src = '';
+        imageButtons.style.display = 'none';
       }
     });
+  });
 
-    // リサイズ時にキャンバス解像度を更新しガイド線再計算
-    window.addEventListener('resize', () => {
-      panel.resizeCanvas();
-      // 再計算
-      const marginX = 20;
-      const w = panel.canvas.width - marginX * 2;
-      const h = panel.canvas.height;
-      const amplitude = h / 16;
-      const centerY = h / 2;
-      panel.guidePoints.length = 0;
-      const step = w / 50;
-      for(let x=0; x<=w; x+=step){
-        const theta = (x / w) * 2 * Math.PI;
-        const y = centerY - amplitude * Math.sin(theta);
-        panel.guidePoints.push({x: x + marginX, y});
-      }
-      drawGuide(panel);
-      drawLine(panel);
-    });
+  // ボタン押下で3枚目画像切替
+  imageButtons.addEventListener('click', e => {
+    if(e.target.tagName !== 'BUTTON') return;
+    const img = e.target.getAttribute('data-img');
+    if(img){
+      screenImage.src = img;
+    }
   });
 
   drawAllGuides();
