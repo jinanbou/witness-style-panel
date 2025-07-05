@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WitnessSystem</title>
+<title>Witness System</title>
 <style>
   body {
     margin: 0; padding: 0;
@@ -17,16 +17,13 @@
   }
   #screen {
     width: 70vw;
-    max-width: 1000px;
     height: 50vh;
-    max-height: 600px;
     background: #333;
     margin-top: 20px;
     border: 3px solid #888;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     position: relative;
   }
   #screen img {
@@ -34,46 +31,19 @@
     max-height: 100%;
     object-fit: contain;
   }
-  #imageButtons {
-    margin-top: 10px;
-    display: none;
-    text-align: center;
-  }
-  #imageButtons button {
-    background-color: #3ad;
-    border: none;
-    color: white;
-    margin: 0 8px;
-    padding: 8px 16px;
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 4px;
-  }
-  #imageButtons button:disabled {
-    background-color: #666;
-    cursor: default;
-  }
-  #imageButtons button:hover:enabled {
-    background-color: #269;
-  }
   .container {
     margin-top: 30px;
     display: flex;
     gap: 20px;
     width: 70vw;
-    max-width: 1000px;
   }
   .panel {
     position: relative;
     flex: 1 1 0;
-    aspect-ratio: 7 / 3;
+    aspect-ratio: 7 / 1.2;
     background: #ccc;
     border: 2px solid #888;
-    min-width: 150px;
-    transition: background-color 0.3s ease;
-  }
-  .panel.locked {
-    background: #000 !important;
+    user-select: none;
   }
   canvas {
     position: absolute;
@@ -81,20 +51,29 @@
     width: 100%; height: 100%;
     touch-action: none;
   }
-  #answerContainer {
-    margin-top: 20px;
-    width: 70vw;
-    max-width: 1000px;
-    display: none;
-    text-align: center;
-  }
   #answerInput {
+    margin-top: 20px;
     padding: 10px;
     font-size: 16px;
-    width: 300px;
-    max-width: 90%;
-    border-radius: 5px;
-    border: none;
+    width: 70vw;
+    max-width: 600px;
+    box-sizing: border-box;
+  }
+  #stageButtons {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+  }
+  .stage-btn {
+    background: #444;
+    border: 2px solid #888;
+    color: white;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    border-radius: 4px;
   }
 </style>
 </head>
@@ -102,22 +81,21 @@
 
 <div id="screen">
   <img id="screenImage" src="" alt="Selected Image" />
-  <div id="imageButtons">
-    <button data-img="image3_1.png" id="imgBtn1">画像1</button>
-    <button data-img="image3_2.png" id="imgBtn2">画像2</button>
-    <button data-img="image3_3.png" id="imgBtn3">画像3</button>
-  </div>
+</div>
+
+<div id="stageButtons">
+  <div class="stage-btn" data-index="0">ステージ1</div>
+  <div class="stage-btn" data-index="1">ステージ2</div>
+  <div class="stage-btn" data-index="2">ステージ3</div>
 </div>
 
 <div class="container">
-  <div class="panel" id="panel0"><canvas></canvas></div>
-  <div class="panel locked" id="panel1"><canvas></canvas></div>
-  <div class="panel" id="panel2"><canvas></canvas></div>
+  <div class="panel"><canvas></canvas></div>
+  <div class="panel"><canvas></canvas></div>
+  <div class="panel"><canvas></canvas></div>
 </div>
 
-<div id="answerContainer">
-  <input type="text" id="answerInput" placeholder="答えを入力してください" autocomplete="off" />
-</div>
+<input type="text" id="answerInput" placeholder="答えを入力" style="display:none" />
 
 <script>
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
@@ -145,27 +123,41 @@
   });
 
   const screenImage = document.getElementById('screenImage');
-  const imageButtons = document.getElementById('imageButtons');
-  const answerContainer = document.getElementById('answerContainer');
   const answerInput = document.getElementById('answerInput');
-
-  const imgBtn1 = document.getElementById('imgBtn1');
-  const imgBtn2 = document.getElementById('imgBtn2');
-  const imgBtn3 = document.getElementById('imgBtn3');
-
-  const imageAnswers = ["burglary", "alley", "fetching"];
-  const panelAnswers = ["visits", "comment", "helps"];
+  const stageButtons = document.querySelectorAll('#stageButtons .stage-btn');
 
   const imageSources = [
     "image1.jpeg",
     "image2.png",
-    ["image3_1.png", "image3_2.png", "image3_3.png"]
+    "image3.png"
   ];
 
-  let imageCleared = [false, false, false];
-  let panelCleared = [false, false, false];
+  const imageAnswers = [
+    "burglary",
+    "alley",
+    "fetching"
+  ];
+
+  const panelAnswers = [
+    "visits",
+    "comment",
+    "helps"
+  ];
+
+  const panelCleared = [false, false, false];
+  const imageCleared = [false, false, false];
+
+  let activePanel = null;
+  let isDrawing = false;
+  let currentImageIndex = null;
 
   function drawGuide(panel) {
+    if(panel.index === 1 && !panelCleared[0]){
+      panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+      panel.ctx.fillStyle = '#000';
+      panel.ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
+      return;
+    }
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
     ctx.strokeStyle = '#fff';
@@ -207,6 +199,12 @@
   }
 
   function drawLine(panel){
+    if(panel.index === 1 && !panelCleared[0]){
+      panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+      panel.ctx.fillStyle = '#000';
+      panel.ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
+      return;
+    }
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
     drawGuide(panel);
@@ -224,51 +222,36 @@
   }
 
   function drawAllGuides(){
-    panels.forEach(drawGuide);
+    panels.forEach(p => {
+      if(p.index === 1 && !panelCleared[0]){
+        p.ctx.clearRect(0, 0, p.canvas.width, p.canvas.height);
+        p.ctx.fillStyle = '#000';
+        p.ctx.fillRect(0, 0, p.canvas.width, p.canvas.height);
+      } else {
+        drawGuide(p);
+      }
+    });
   }
-
-  let activePanel = null;
-  let isDrawing = false;
-  let currentPanelIndex = null;
 
   function isAtEnd(point, guidePoints){
     const end = guidePoints[guidePoints.length - 1];
     return (point.x === end.x && point.y === end.y);
   }
 
-  function updateAnswerVisibility(){
-    const anyDrawn = panels.some(p => p.drawn);
-    const imgVisible = screenImage.src && screenImage.src !== "" && !screenImage.src.includes(window.location.href);
-    if(anyDrawn || imgVisible){
-      answerContainer.style.display = 'block';
-    } else {
-      answerContainer.style.display = 'none';
-      answerInput.value = '';
-    }
+  function anyPanelDrawn(){
+    return panels.some(p => p.path.length >= 2);
   }
 
-  function updateImageButtons(){
-    imgBtn1.disabled = false;
-    imgBtn2.disabled = !imageCleared[0];
-    imgBtn3.disabled = !imageCleared[1];
-  }
-
-  function updatePanelLock(){
-    if(!panelCleared[0]){
-      panels[1].panel.classList.add('locked');
-      // パネル2の線を消す（ロック時）
-      panels[1].path = [];
-      panels[1].drawn = false;
-      panels[1].ctx.clearRect(0,0, panels[1].canvas.width, panels[1].canvas.height);
+  function showAnswerInputIfNeeded(){
+    if(currentImageIndex !== null || anyPanelDrawn()){
+      answerInput.style.display = 'block';
     } else {
-      panels[1].panel.classList.remove('locked');
-      drawGuide(panels[1]);
+      answerInput.style.display = 'none';
     }
   }
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-      // パネル2ロック時は無視
       if(panel.index === 1 && !panelCleared[0]){
         return;
       }
@@ -284,8 +267,6 @@
       });
 
       screenImage.src = '';
-      imageButtons.style.display = 'none';
-      updateAnswerVisibility();
 
       const rect = panel.canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
@@ -295,6 +276,7 @@
       panel.path = [startPoint];
 
       drawLine(panel);
+      showAnswerInputIfNeeded();
     });
 
     panel.canvas.addEventListener('pointermove', e => {
@@ -308,6 +290,7 @@
       if(snap !== last){
         panel.path.push(snap);
         drawLine(panel);
+        showAnswerInputIfNeeded();
       }
     });
 
@@ -318,67 +301,78 @@
       const last = panel.path[panel.path.length - 1];
       if(isAtEnd(last, panel.guidePoints)){
         panel.drawn = true;
-        currentPanelIndex = panel.index;
-        if(panel.index === 2){
-          screenImage.src = imageSources[2][0];
-          imageButtons.style.display = 'block';
-          updateImageButtons();
-        } else {
-          screenImage.src = imageSources[panel.index];
-          imageButtons.style.display = 'none';
-        }
+        screenImage.src = imageSources[panel.index];
       } else {
         panel.path = [];
-        panel.drawn = false;
         drawGuide(panel);
         screenImage.src = '';
-        imageButtons.style.display = 'none';
-        currentPanelIndex = null;
       }
-      updateAnswerVisibility();
+      showAnswerInputIfNeeded();
     });
   });
 
-  imageButtons.addEventListener('click', e => {
-    if(e.target.tagName !== 'BUTTON') return;
-    const img = e.target.getAttribute('data-img');
-    if(img){
-      if(e.target.disabled) return;
-      screenImage.src = img;
+  answerInput.addEventListener('keydown', e => {
+    if(e.key !== 'Enter') return;
+    const input = answerInput.value.trim().toLowerCase();
+    if(currentImageIndex !== null){
+      if(input === imageAnswers[currentImageIndex]){
+        imageCleared[currentImageIndex] = true;
+
+        if(currentImageIndex === 0) imageCleared[1] = imageCleared[1] || false;
+        if(currentImageIndex === 1 && !imageCleared[0]){
+          alert("画像2は画像1をクリアしないと解放されません");
+          return;
+        }
+        if(currentImageIndex === 2 && (!imageCleared[0] || !imageCleared[1])){
+          alert("画像3は画像1・2をクリアしないと解放されません");
+          return;
+        }
+
+        alert("正解！ステージに戻ります");
+        screenImage.src = '';
+        currentImageIndex = null;
+        answerInput.value = '';
+        answerInput.style.display = 'none';
+
+        if(imageCleared[0]) panelCleared[1] = true;
+        drawAllGuides();
+        return;
+      } else {
+        alert("不正解");
+      }
+    } else if(activePanel !== null){
+      if(input === panelAnswers[activePanel.index]){
+        panelCleared[activePanel.index] = true;
+        alert("正解！線を引けるパネルが増えました");
+        answerInput.value = '';
+        answerInput.style.display = 'none';
+        drawAllGuides();
+      } else {
+        alert("不正解");
+      }
     }
   });
 
-  answerInput.addEventListener('keydown', e => {
-    if(e.key === 'Enter'){
-      if(currentPanelIndex === null) return;
-      const userAns = answerInput.value.trim().toLowerCase();
-
-      // 画像の正解判定はパネル3選択中＆画像1のみ
-      if(currentPanelIndex === 2 && screenImage.src.split('/').pop() === "image3_1.png"){
-        if(userAns === imageAnswers[0]){
-          alert('正解です！');
-          imageCleared[0] = true;
-          updateImageButtons();
-        } else {
-          alert('不正解です。');
-        }
+  // ステージボタンで画像表示
+  stageButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.index);
+      // 画像2・3は画像1クリア必須
+      if(idx === 1 && !imageCleared[0]){
+        alert('ステージ2はステージ1クリア後に解放されます');
         return;
       }
-
-      // それ以外はパネル回答判定
-      if(userAns === panelAnswers[currentPanelIndex]){
-        alert('正解です！');
-        panelCleared[currentPanelIndex] = true;
-        updatePanelLock();
-      } else {
-        alert('不正解です。');
+      if(idx === 2 && (!imageCleared[0] || !imageCleared[1])){
+        alert('ステージ3はステージ1・2クリア後に解放されます');
+        return;
       }
-    }
+      currentImageIndex = idx;
+      screenImage.src = imageSources[idx];
+      showAnswerInputIfNeeded();
+    });
   });
 
   drawAllGuides();
-  updateImageButtons();
-  updatePanelLock();
 </script>
 
 </body>
