@@ -70,6 +70,10 @@
     background: #ccc;
     border: 2px solid #888;
     min-width: 150px; /* 最小幅確保 */
+    transition: background-color 0.3s ease;
+  }
+  .panel.locked {
+    background: #000 !important;
   }
   canvas {
     position: absolute;
@@ -106,9 +110,9 @@
 </div>
 
 <div class="container">
-  <div class="panel"><canvas></canvas></div>
-  <div class="panel"><canvas></canvas></div>
-  <div class="panel"><canvas></canvas></div>
+  <div class="panel" id="panel0"><canvas></canvas></div>
+  <div class="panel locked" id="panel1"><canvas></canvas></div>
+  <div class="panel" id="panel2"><canvas></canvas></div>
 </div>
 
 <div id="answerContainer">
@@ -240,7 +244,7 @@
 
   function updateAnswerVisibility(){
     const anyDrawn = panels.some(p => p.drawn);
-    const imgVisible = screenImage.src && !screenImage.src.endsWith(window.location.href) && screenImage.src !== "";
+    const imgVisible = screenImage.src && !screenImage.src.includes(window.location.href) && screenImage.src !== "";
     if(anyDrawn || imgVisible){
       answerContainer.style.display = 'block';
     } else {
@@ -256,6 +260,15 @@
     imgBtn2.disabled = !imageCleared[0];
     // 画像3は画像2正解済みで有効
     imgBtn3.disabled = !imageCleared[1];
+  }
+
+  function updatePanelLock(){
+    // パネル2はパネル1クリアしていないとロック（黒背景）
+    if(!panelCleared[0]){
+      panels[1].panel.classList.add('locked');
+    } else {
+      panels[1].panel.classList.remove('locked');
+    }
   }
 
   panels.forEach(panel => {
@@ -350,13 +363,12 @@
       const userAns = answerInput.value.trim().toLowerCase();
 
       // 画像が表示されていれば画像の答えで判定、それ以外はパネルの答えで判定
-      const isImageShown = screenImage.src && !screenImage.src.endsWith(window.location.href) && screenImage.src !== "";
+      const isImageShown = screenImage.src && !screenImage.src.includes(window.location.href) && screenImage.src !== "";
       if(isImageShown){
         if(userAns === imageAnswers[currentPanelIndex]){
           alert('正解です！');
           imageCleared[currentPanelIndex] = true;
           updateImageButtons();
-          // 画像をクリアしてもパネルの線は残す
         } else {
           alert('不正解です。');
         }
@@ -364,7 +376,7 @@
         if(userAns === panelAnswers[currentPanelIndex]){
           alert('正解です！');
           panelCleared[currentPanelIndex] = true;
-          // パネル1クリアでパネル2開放はポインターイベントで制御済み
+          updatePanelLock();
         } else {
           alert('不正解です。');
         }
@@ -374,6 +386,7 @@
 
   drawAllGuides();
   updateImageButtons();
+  updatePanelLock();
 </script>
 
 </body>
