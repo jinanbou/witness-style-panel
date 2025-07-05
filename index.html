@@ -65,7 +65,8 @@
 <div class="screen stage-select active" id="stageSelect">
   <h2>ステージセレクト</h2>
   <div class="stages">
-    <div class="stage-button" id="stage1">ステージ1</div>
+    <div class="stage-button" id="stageMap">ステージマップ</div>
+    <div class="stage-button locked" id="stage1">ステージ1</div>
     <div class="stage-button locked" id="stage2">ステージ2</div>
     <div class="stage-button locked" id="stage3">ステージ3</div>
   </div>
@@ -91,11 +92,13 @@
   const answerInput = document.getElementById('answerInput');
   const mapAnswerInput = document.getElementById('mapAnswerInput');
 
+  const stageMapBtn = document.getElementById('stageMap');
   const stage1Btn = document.getElementById('stage1');
   const stage2Btn = document.getElementById('stage2');
   const stage3Btn = document.getElementById('stage3');
 
-  let currentStage = 0;
+  let currentStage = null; // null = map, 0 = stage1, etc.
+  let mapUnlocked = false;
 
   const stageData = [
     { image: 'image1.jpeg', answer: 'burglary' },
@@ -104,15 +107,19 @@
   ];
 
   const mapAnswer = 'helps';
-  let mapUnlocked = false;
 
+  stageMapBtn.addEventListener('click', () => enterStage(-1));
   stage1Btn.addEventListener('click', () => enterStage(0));
   stage2Btn.addEventListener('click', () => enterStage(1));
   stage3Btn.addEventListener('click', () => enterStage(2));
 
   function enterStage(index) {
     currentStage = index;
-    imageDisplay.src = stageData[index].image;
+    if (index === -1) {
+      imageDisplay.src = 'map.png';
+    } else {
+      imageDisplay.src = stageData[index].image;
+    }
     stageSelect.classList.remove('active');
     stageView.classList.add('active');
   }
@@ -120,12 +127,22 @@
   answerInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       const userAnswer = answerInput.value.trim().toLowerCase();
-      if (userAnswer === stageData[currentStage].answer) {
+
+      if (currentStage === -1 && userAnswer === mapAnswer) {
+        alert('マップ解放！Witnessパネルが使えるようになりました');
+        mapUnlocked = true;
+        stageView.classList.remove('active');
+        witnessView.classList.add('active');
+        return;
+      }
+
+      if (currentStage >= 0 && userAnswer === stageData[currentStage].answer) {
         if (currentStage === 0) stage2Btn.classList.remove('locked');
         if (currentStage === 1) stage3Btn.classList.remove('locked');
         if (currentStage === 2 && mapUnlocked) {
+          alert('ステージクリア！ステージマップに戻ります');
           stageView.classList.remove('active');
-          witnessView.classList.add('active');
+          stageSelect.classList.add('active');
         } else {
           alert('正解！ステージセレクトに戻ります');
           stageView.classList.remove('active');
@@ -143,14 +160,13 @@
       if (ans === mapAnswer) {
         alert('マップ解放！Witnessパネルが使えるようになりました');
         mapUnlocked = true;
-        stage3Btn.textContent = 'Witness!';
+        stageMapBtn.classList.remove('locked');
       } else {
         alert('違います');
       }
     }
   });
 
-  // メッセージ受信で戻る処理
   window.addEventListener('message', (event) => {
     if (event.data === 'backToStageSelect') {
       witnessView.classList.remove('active');
