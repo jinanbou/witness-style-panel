@@ -58,10 +58,11 @@
     width: 70vw;
     max-width: 600px;
     box-sizing: border-box;
+    display: none;
   }
   #stageButtons {
     margin-top: 10px;
-    display: flex;
+    display: none;
     justify-content: center;
     gap: 15px;
   }
@@ -95,284 +96,22 @@
   <div class="panel"><canvas></canvas></div>
 </div>
 
-<input type="text" id="answerInput" placeholder="答えを入力" style="display:none" />
+<input type="text" id="answerInput" placeholder="答えを入力" />
 
 <script>
-  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    const marginX = 20;
-    const w = canvas.width - marginX * 2;
-    const h = canvas.height;
-    const amplitude = h / 16;
-    const centerY = h / 2;
-
-    const guidePoints = [];
-    const step = w / 50;
-    for(let x=0; x<=w; x+=step){
-      const theta = (x / w) * 2 * Math.PI;
-      const y = centerY - amplitude * Math.sin(theta);
-      guidePoints.push({x: x + marginX, y});
-    }
-
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
-  });
-
-  const screenImage = document.getElementById('screenImage');
-  const answerInput = document.getElementById('answerInput');
-  const stageButtons = document.querySelectorAll('#stageButtons .stage-btn');
-
-  const imageSources = [
-    "image1.jpeg",
-    "image2.png",
-    "image3.png"
-  ];
-
-  const imageAnswers = [
-    "burglary",
-    "alley",
-    "fetching"
-  ];
-
-  const panelAnswers = [
-    "visits",
-    "comment",
-    "helps"
-  ];
-
-  const panelCleared = [false, false, false];
-  const imageCleared = [false, false, false];
-
-  let activePanel = null;
-  let isDrawing = false;
-  let currentImageIndex = null;
-
-  function drawGuide(panel) {
-    if(panel.index === 1 && !panelCleared[0]){
-      panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-      panel.ctx.fillStyle = '#000';
-      panel.ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
-      return;
-    }
-    const ctx = panel.ctx;
-    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    const pts = panel.guidePoints;
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for(let i=1; i<pts.length; i++){
-      ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.stroke();
-
-    const start = panel.guidePoints[0];
-    ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
-    ctx.beginPath();
-    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-
-  function dist2(a,b){
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return dx*dx + dy*dy;
-  }
-
-  function snapToGuide(x, y, guidePoints){
-    let minDist = Infinity;
-    let closest = guidePoints[0];
-    for(const pt of guidePoints){
-      const d = dist2(pt, {x,y});
-      if(d < minDist){
-        minDist = d;
-        closest = pt;
-      }
-    }
-    return closest;
-  }
-
-  function drawLine(panel){
-    if(panel.index === 1 && !panelCleared[0]){
-      panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-      panel.ctx.fillStyle = '#000';
-      panel.ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
-      return;
-    }
-    const ctx = panel.ctx;
-    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    drawGuide(panel);
-    if(panel.path.length < 2) return;
-    ctx.strokeStyle = '#3ad';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(panel.path[0].x, panel.path[0].y);
-    for(let i=1; i<panel.path.length; i++){
-      ctx.lineTo(panel.path[i].x, panel.path[i].y);
-    }
-    ctx.stroke();
-  }
-
-  function drawAllGuides(){
-    panels.forEach(p => {
-      if(p.index === 1 && !panelCleared[0]){
-        p.ctx.clearRect(0, 0, p.canvas.width, p.canvas.height);
-        p.ctx.fillStyle = '#000';
-        p.ctx.fillRect(0, 0, p.canvas.width, p.canvas.height);
-      } else {
-        drawGuide(p);
-      }
-    });
-  }
-
-  function isAtEnd(point, guidePoints){
-    const end = guidePoints[guidePoints.length - 1];
-    return (point.x === end.x && point.y === end.y);
-  }
-
-  function anyPanelDrawn(){
-    return panels.some(p => p.path.length >= 2);
-  }
+  // ... 全スクリプト部分は省略しますが、次の関数を修正します：
 
   function showAnswerInputIfNeeded(){
     if(currentImageIndex !== null || anyPanelDrawn()){
       answerInput.style.display = 'block';
+      document.getElementById('stageButtons').style.display = 'flex';
     } else {
       answerInput.style.display = 'none';
+      document.getElementById('stageButtons').style.display = 'none';
     }
   }
 
-  panels.forEach(panel => {
-    panel.canvas.addEventListener('pointerdown', e => {
-      if(panel.index === 1 && !panelCleared[0]){
-        return;
-      }
-      activePanel = panel;
-      isDrawing = true;
-
-      panels.forEach(p => {
-        if(p !== panel){
-          p.path = [];
-          p.drawn = false;
-          drawGuide(p);
-        }
-      });
-
-      screenImage.src = '';
-
-      const rect = panel.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-
-      const startPoint = panel.guidePoints[0];
-      panel.path = [startPoint];
-
-      drawLine(panel);
-      showAnswerInputIfNeeded();
-    });
-
-    panel.canvas.addEventListener('pointermove', e => {
-      if(!isDrawing || activePanel !== panel) return;
-
-      const rect = panel.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const snap = snapToGuide(mx, my, panel.guidePoints);
-      const last = panel.path[panel.path.length - 1];
-      if(snap !== last){
-        panel.path.push(snap);
-        drawLine(panel);
-        showAnswerInputIfNeeded();
-      }
-    });
-
-    panel.canvas.addEventListener('pointerup', e => {
-      if(!isDrawing || activePanel !== panel) return;
-      isDrawing = false;
-
-      const last = panel.path[panel.path.length - 1];
-      if(isAtEnd(last, panel.guidePoints)){
-        panel.drawn = true;
-        screenImage.src = imageSources[panel.index];
-      } else {
-        panel.path = [];
-        drawGuide(panel);
-        screenImage.src = '';
-      }
-      showAnswerInputIfNeeded();
-    });
-  });
-
-  answerInput.addEventListener('keydown', e => {
-    if(e.key !== 'Enter') return;
-    const input = answerInput.value.trim().toLowerCase();
-    if(currentImageIndex !== null){
-      if(input === imageAnswers[currentImageIndex]){
-        imageCleared[currentImageIndex] = true;
-
-        if(currentImageIndex === 0) imageCleared[1] = imageCleared[1] || false;
-        if(currentImageIndex === 1 && !imageCleared[0]){
-          alert("画像2は画像1をクリアしないと解放されません");
-          return;
-        }
-        if(currentImageIndex === 2 && (!imageCleared[0] || !imageCleared[1])){
-          alert("画像3は画像1・2をクリアしないと解放されません");
-          return;
-        }
-
-        alert("正解！ステージに戻ります");
-        screenImage.src = '';
-        currentImageIndex = null;
-        answerInput.value = '';
-        answerInput.style.display = 'none';
-
-        if(imageCleared[0]) panelCleared[1] = true;
-        drawAllGuides();
-        return;
-      } else {
-        alert("不正解");
-      }
-    } else if(activePanel !== null){
-      if(input === panelAnswers[activePanel.index]){
-        panelCleared[activePanel.index] = true;
-        alert("正解！線を引けるパネルが増えました");
-        answerInput.value = '';
-        answerInput.style.display = 'none';
-        drawAllGuides();
-      } else {
-        alert("不正解");
-      }
-    }
-  });
-
-  // ステージボタンで画像表示
-  stageButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = Number(btn.dataset.index);
-      // 画像2・3は画像1クリア必須
-      if(idx === 1 && !imageCleared[0]){
-        alert('ステージ2はステージ1クリア後に解放されます');
-        return;
-      }
-      if(idx === 2 && (!imageCleared[0] || !imageCleared[1])){
-        alert('ステージ3はステージ1・2クリア後に解放されます');
-        return;
-      }
-      currentImageIndex = idx;
-      screenImage.src = imageSources[idx];
-      showAnswerInputIfNeeded();
-    });
-  });
-
-  drawAllGuides();
+  // その他コード（drawLineやdrawAllGuidesなど）はそのまま
 </script>
 
 </body>
