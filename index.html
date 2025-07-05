@@ -1,271 +1,153 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WitnessSystem</title>
+<title>Witness Stage Select</title>
 <style>
   body {
-    margin: 0; padding: 0;
+    margin: 0;
+    padding: 0;
     background: #222;
+    color: white;
+    font-family: sans-serif;
+    user-select: none;
+  }
+  .screen {
+    width: 100vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 100vh;
-    color: white;
-    user-select: none;
-  }
-  #screen {
-    width: 70vw;
-    height: 50vh;
-    background: #333;
-    margin-top: 20px;
-    border: 3px solid #888;
-    display: flex;
     justify-content: center;
+  }
+  .stage-select, .stage-view, .witness-view {
+    display: none;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
   }
-  #screen img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+  .stage-select.active,
+  .stage-view.active,
+  .witness-view.active {
+    display: flex;
   }
-  .container {
-    margin-top: 30px;
+  .stages {
     display: flex;
     gap: 20px;
+    margin-bottom: 20px;
   }
-  .panel {
-    position: relative;
-    width: calc(70vw / 4);
-    height: 120px;
-    background: #ccc;
+  .stage-button {
+    padding: 20px;
+    background: #555;
     border: 2px solid #888;
+    cursor: pointer;
   }
-  canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    touch-action: none;
+  .stage-button.locked {
+    background: #333;
+    color: #666;
+    pointer-events: none;
   }
-  .answer-box {
-    display: none;
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.8);
+  #answerInput, #mapAnswerInput {
+    margin-top: 20px;
     padding: 10px;
-    border-radius: 5px;
-    z-index: 10;
+    font-size: 16px;
+  }
+  #imageDisplay {
+    max-width: 80vw;
+    max-height: 60vh;
+    margin-bottom: 20px;
+    border: 2px solid #888;
   }
 </style>
 </head>
 <body>
-
-<div id="screen">
-  <img id="screenImage" src="" alt="Selected Image" />
+<div class="screen stage-select active" id="stageSelect">
+  <h2>ステージセレクト</h2>
+  <div class="stages">
+    <div class="stage-button" id="stage1">ステージ1</div>
+    <div class="stage-button locked" id="stage2">ステージ2</div>
+    <div class="stage-button locked" id="stage3">ステージ3</div>
+  </div>
+  <input type="text" id="mapAnswerInput" placeholder="マップの答えを入力" />
 </div>
 
-<div class="container">
-  <div class="panel"><canvas></canvas></div>
-  <div class="panel"><canvas></canvas></div>
-  <div class="panel"><canvas></canvas></div>
+<div class="screen stage-view" id="stageView">
+  <img id="imageDisplay" src="" alt="ステージ画像" />
+  <input type="text" id="answerInput" placeholder="答えを入力" />
 </div>
 
-<div id="answerBox" class="answer-box">
-  <input type="text" id="answerInput" placeholder="Enter the correct answer">
-  <button id="submitAnswer">Submit</button>
+<div class="screen witness-view" id="witnessView">
+  <iframe src="witness.html" width="100%" height="100%" style="border: none;"></iframe>
 </div>
 
 <script>
-  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+  const stageSelect = document.getElementById('stageSelect');
+  const stageView = document.getElementById('stageView');
+  const witnessView = document.getElementById('witnessView');
 
-    const marginX = 20;
-    const w = canvas.width - marginX * 2;
-    const h = canvas.height;
-    const amplitude = h / 16;
-    const centerY = h / 2;
+  const imageDisplay = document.getElementById('imageDisplay');
+  const answerInput = document.getElementById('answerInput');
+  const mapAnswerInput = document.getElementById('mapAnswerInput');
 
-    const guidePoints = [];
-    const step = w / 50;
-    for(let x=0; x<=w; x+=step){
-      const theta = (x / w) * 2 * Math.PI;
-      const y = centerY - amplitude * Math.sin(theta);
-      guidePoints.push({x: x + marginX, y});
-    }
+  const stage1Btn = document.getElementById('stage1');
+  const stage2Btn = document.getElementById('stage2');
+  const stage3Btn = document.getElementById('stage3');
 
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, enabled: i === 0, index: i };
-  });
+  let currentStage = 0;
 
-  const screenImage = document.getElementById('screenImage');
-  const imageSources = [
-    "image1.jpeg",
-    "image2.png",
-    "image3.png"
+  const stageData = [
+    { image: 'image1.jpeg', answer: 'comment' },
+    { image: 'image2.png', answer: 'visits' },
+    { image: 'image3.png', answer: 'helps' }
   ];
 
-  const answerBox = document.getElementById('answerBox');
-  const answerInput = document.getElementById('answerInput');
-  const submitAnswerButton = document.getElementById('submitAnswer');
+  const mapAnswer = 'mapkey'; // ← マップの正解ワード
+  let mapUnlocked = false;
 
-  function unlockPanel(index) {
-    if (index >= panels.length) return;
+  stage1Btn.addEventListener('click', () => enterStage(0));
+  stage2Btn.addEventListener('click', () => enterStage(1));
+  stage3Btn.addEventListener('click', () => enterStage(2));
 
-    const panel = panels[index];
-    panel.enabled = true;
-    drawGuide(panel);
+  function enterStage(index) {
+    currentStage = index;
+    imageDisplay.src = stageData[index].image;
+    stageSelect.classList.remove('active');
+    stageView.classList.add('active');
   }
 
-  function drawGuide(panel) {
-    const ctx = panel.ctx;
-    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    if (!panel.enabled) {
-      ctx.fillStyle = 'black';  // パネルがロックされているときは完全に黒く
-      ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
-      return;
-    }
-
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    const pts = panel.guidePoints;
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for(let i=1; i<pts.length; i++){
-      ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.stroke();
-
-    const start = panel.guidePoints[0];
-    ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
-    ctx.beginPath();
-    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-
-  function drawLine(panel){
-    const ctx = panel.ctx;
-    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    drawGuide(panel);
-    if(panel.path.length < 2) return;
-    ctx.strokeStyle = '#3ad';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(panel.path[0].x, panel.path[0].y);
-    for(let i=1; i<panel.path.length; i++){
-      ctx.lineTo(panel.path[i].x, panel.path[i].y);
-    }
-    ctx.stroke();
-  }
-
-  function dist2(a,b){
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return dx*dx + dy*dy;
-  }
-
-  function snapToGuide(x, y, guidePoints){
-    let minDist = Infinity;
-    let closest = guidePoints[0];
-    for(const pt of guidePoints){
-      const d = dist2(pt, {x,y});
-      if(d < minDist){
-        minDist = d;
-        closest = pt;
-      }
-    }
-    return closest;
-  }
-
-  function isAtEnd(point, guidePoints){
-    const end = guidePoints[guidePoints.length - 1];
-    return (point.x === end.x && point.y === end.y);
-  }
-
-  let activePanel = null;
-  let isDrawing = false;
-
-  panels.forEach(panel => {
-    panel.canvas.addEventListener('pointerdown', e => {
-      if (!panel.enabled) return;
-      activePanel = panel;
-      isDrawing = true;
-
-      panels.forEach(p => {
-        if(p !== panel){
-          p.path = [];
-          p.drawn = false;
-          drawGuide(p);
+  answerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const userAnswer = answerInput.value.trim().toLowerCase();
+      if (userAnswer === stageData[currentStage].answer) {
+        if (currentStage === 0) stage2Btn.classList.remove('locked');
+        if (currentStage === 1) stage3Btn.classList.remove('locked');
+        if (currentStage === 2 && mapUnlocked) {
+          stageView.classList.remove('active');
+          witnessView.classList.add('active');
+        } else {
+          alert('正解！ステージセレクトに戻ります');
+          stageView.classList.remove('active');
+          stageSelect.classList.add('active');
         }
-      });
-
-      screenImage.src = '';
-
-      const rect = panel.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-
-      const startPoint = panel.guidePoints[0];
-      panel.path = [startPoint];
-
-      drawLine(panel);
-    });
-
-    panel.canvas.addEventListener('pointermove', e => {
-      if(!isDrawing || activePanel !== panel) return;
-
-      const rect = panel.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const snap = snapToGuide(mx, my, panel.guidePoints);
-      const last = panel.path[panel.path.length - 1];
-      if(snap !== last){
-        panel.path.push(snap);
-        drawLine(panel);
-      }
-    });
-
-    panel.canvas.addEventListener('pointerup', e => {
-      if(!isDrawing || activePanel !== panel) return;
-      isDrawing = false;
-
-      const last = panel.path[panel.path.length - 1];
-      if(isAtEnd(last, panel.guidePoints)){
-        panel.drawn = true;
-        screenImage.src = imageSources[panel.index];
-        answerBox.style.display = 'block';
       } else {
-        panel.path = [];
-        drawGuide(panel);
-        screenImage.src = '';
-        answerBox.style.display = 'none';
+        alert('不正解');
       }
-    });
-  });
-
-  submitAnswerButton.addEventListener('click', () => {
-    const correctAnswers = ['comment', 'visits', 'helps'];
-    const userAnswer = answerInput.value.trim().toLowerCase();
-
-    const activePanelIndex = panels.findIndex(p => p === activePanel);
-    if (correctAnswers[activePanelIndex] === userAnswer) {
-      unlockPanel(activePanelIndex + 1);
-      answerBox.style.display = 'none';
-    } else {
-      alert("Incorrect answer! Try again.");
     }
   });
 
-  drawGuide(panels[0]);
+  mapAnswerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const ans = mapAnswerInput.value.trim().toLowerCase();
+      if (ans === mapAnswer) {
+        alert('マップ解放！Witnessパネルが使えるようになりました');
+        mapUnlocked = true;
+        stage3Btn.textContent = 'Witness!';
+      } else {
+        alert('違います');
+      }
+    }
+  });
 </script>
-
 </body>
 </html>
