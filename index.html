@@ -24,25 +24,29 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
   }
   #screen img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    user-select: none;
   }
   .container {
     margin-top: 30px;
     display: flex;
     gap: 20px;
+    width: 70vw;
+    max-width: 100%;
+    justify-content: center;
   }
   .panel {
     position: relative;
-    width: calc(70vw / 3);
-    height: 120px;
+    flex: 1 1 0;
+    max-width: calc((70vw - 40px) / 3); /* 70vwからgap2つの40pxを引いて3分割 */
+    aspect-ratio: 3 / 1; /* 横3:縦1の比率固定 */
     background: #ccc;
     border: 2px solid #888;
+    min-width: 150px;
+    min-height: 50px; /* aspect-ratioで高さは自動 */
   }
   canvas {
     position: absolute;
@@ -50,35 +54,12 @@
     width: 100%; height: 100%;
     touch-action: none;
   }
-  #answerContainer {
-    margin-top: 20px;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-  #answerInput {
-    padding: 8px;
-    font-size: 16px;
-    width: 200px;
-  }
-  #specialClickHint {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    color: #3ad;
-    font-weight: bold;
-    user-select: none;
-    cursor: pointer;
-    display: none;
-  }
 </style>
 </head>
 <body>
 
 <div id="screen">
   <img id="screenImage" src="" alt="Selected Image" />
-  <div id="specialClickHint">● クリックで戻る</div>
 </div>
 
 <div class="container">
@@ -87,18 +68,19 @@
   <div class="panel"><canvas></canvas></div>
 </div>
 
-<div id="answerContainer">
-  <input type="text" id="answerInput" placeholder="答えを入力してください" />
-  <button id="submitAnswer">送信</button>
-</div>
-
 <script>
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
     const canvas = panel.querySelector('canvas');
     const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+
+    // パネルサイズに合わせてキャンバス解像度設定（初期とリサイズ時用）
+    function resizeCanvas() {
+      const rect = panel.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
     const marginX = 20;
     const w = canvas.width - marginX * 2;
@@ -115,39 +97,19 @@
       guidePoints.push({x: x + marginX, y});
     }
 
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
+    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i, resizeCanvas };
   });
 
   const screenImage = document.getElementById('screenImage');
-  const specialClickHint = document.getElementById('specialClickHint');
-  const answerContainer = document.getElementById('answerContainer');
-  const answerInput = document.getElementById('answerInput');
-  const submitAnswer = document.getElementById('submitAnswer');
-
   const imageSources = [
     "image1.jpeg",
     "image2.png",
     "image3.png"
   ];
 
-  const answers = [
-    "visits",
-    "comment",
-    "helps"
-  ];
-
-  let activePanel = null;
-  let isDrawing = false;
-  let specialAreaVisible = false;
-
   function drawGuide(panel) {
     const ctx = panel.ctx;
     ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    if(panel.locked){
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
-      return;
-    }
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
@@ -194,87 +156,30 @@
     if(panel.path.length < 2) return;
     ctx.strokeStyle = '#3ad';
     ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';   // 端を丸く
+    ctx.lineJoin = 'round';  // 角も丸く
     ctx.beginPath();
     ctx.moveTo(panel.path[0].x, panel.path[0].y);
     for(let i=1; i<panel.path.length; i++){
       ctx.lineTo(panel.path[i].x, panel.path[i].y);
     }
     ctx.stroke();
-
-    // 3番目パネルかつ線引き完了なら特別クリック領域を描く
-    if(panel.index === 2 && panel.drawn){
-      drawSpecialClickArea(panel);
-    }
-  }
-
-  function drawSpecialClickArea(panel){
-    const ctx = panel.ctx;
-    const radius = 10;
-    const x = panel.canvas.width - radius - 10;
-    const y = panel.canvas.height - radius - 10;
-    ctx.fillStyle = "rgba(58, 173, 255, 0.8)";
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, 2*Math.PI);
-    ctx.fill();
-    specialClickHint.style.display = "block";
-    specialClickHint.style.top = (panel.canvas.getBoundingClientRect().bottom + 5) + "px";
-    specialClickHint.style.left = (panel.canvas.getBoundingClientRect().right - 100) + "px";
-  }
-
-  function clearSpecialClickArea(){
-    specialClickHint.style.display = "none";
   }
 
   function drawAllGuides(){
     panels.forEach(drawGuide);
   }
 
+  let activePanel = null;
+  let isDrawing = false;
+
   function isAtEnd(point, guidePoints){
     const end = guidePoints[guidePoints.length - 1];
     return (point.x === end.x && point.y === end.y);
   }
 
-  // 最初は3番目以外ロック（黒くする）
-  panels.forEach((p, i) => {
-    if(i !== 0) p.locked = true;
-    drawGuide(p);
-  });
-
-  // パネルをリサイズ（小さい横幅なら小さくする）
-  function resizePanels(){
-    const baseWidth = window.innerWidth * 0.7 / 3;
-    const minWidth = 180;
-    const finalWidth = baseWidth < minWidth ? minWidth : baseWidth;
-    panels.forEach(p => {
-      p.panel.style.width = finalWidth + "px";
-      // canvasサイズも更新
-      p.canvas.width = p.panel.clientWidth;
-      p.canvas.height = p.panel.clientHeight;
-      // 再作成ガイド点
-      const marginX = 20;
-      const w = p.canvas.width - marginX * 2;
-      const h = p.canvas.height;
-      const amplitude = h / 16;
-      const centerY = h / 2;
-      p.guidePoints.length = 0;
-      const step = w / 50;
-      for(let x=0; x<=w; x+=step){
-        const theta = (x / w) * 2 * Math.PI;
-        const y = centerY - amplitude * Math.sin(theta);
-        p.guidePoints.push({x: x + marginX, y});
-      }
-      drawGuide(p);
-      drawLine(p);
-    });
-  }
-  window.addEventListener("resize", resizePanels);
-  resizePanels();
-
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-      if(panel.locked) return;
       activePanel = panel;
       isDrawing = true;
 
@@ -297,13 +202,10 @@
       panel.path = [startPoint];
 
       drawLine(panel);
-      clearSpecialClickArea();
-      answerContainer.style.display = "none";
     });
 
     panel.canvas.addEventListener('pointermove', e => {
       if(!isDrawing || activePanel !== panel) return;
-      if(panel.locked) return;
 
       const rect = panel.canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
@@ -318,76 +220,41 @@
 
     panel.canvas.addEventListener('pointerup', e => {
       if(!isDrawing || activePanel !== panel) return;
-      if(panel.locked) return;
       isDrawing = false;
 
       const last = panel.path[panel.path.length - 1];
       if(isAtEnd(last, panel.guidePoints)){
         panel.drawn = true;
-        // 3枚目パネルは画像非表示、特別クリック領域はdrawLine内で描画
-        if(panel.index !== 2){
-          screenImage.src = imageSources[panel.index];
-          answerContainer.style.display = "flex";
-          specialClickHint.style.display = "none";
-        } else {
-          screenImage.src = "";
-          answerContainer.style.display = "flex";
-          specialClickHint.style.display = "block";
-        }
+        screenImage.src = imageSources[panel.index];
       } else {
         panel.path = [];
-        panel.drawn = false;
         drawGuide(panel);
         screenImage.src = '';
-        answerContainer.style.display = "none";
-        specialClickHint.style.display = "none";
       }
     });
 
-    // 3枚目パネルの特別クリック領域判定
-    panel.canvas.addEventListener('click', e => {
-      if(panel.index === 2 && panel.drawn){
-        const rect = panel.canvas.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
-        const radius = 10;
-        const areaX = panel.canvas.width - radius - 10;
-        const areaY = panel.canvas.height - radius - 10;
-        const dist = Math.hypot(clickX - areaX, clickY - areaY);
-        if(dist <= radius){
-          // 戻る動作 → 1枚目パネルに戻る処理例
-          alert("戻ります");
-          panels.forEach(p => {
-            p.path = [];
-            p.drawn = false;
-            p.locked = p.index !== 0; // 0以外はロック
-            drawGuide(p);
-            screenImage.src = "";
-            answerContainer.style.display = "none";
-            specialClickHint.style.display = "none";
-          });
-          activePanel = null;
-        }
+    // リサイズ時にキャンバス解像度を更新しガイド線再計算
+    window.addEventListener('resize', () => {
+      panel.resizeCanvas();
+      // 再計算
+      const marginX = 20;
+      const w = panel.canvas.width - marginX * 2;
+      const h = panel.canvas.height;
+      const amplitude = h / 16;
+      const centerY = h / 2;
+      panel.guidePoints.length = 0;
+      const step = w / 50;
+      for(let x=0; x<=w; x+=step){
+        const theta = (x / w) * 2 * Math.PI;
+        const y = centerY - amplitude * Math.sin(theta);
+        panel.guidePoints.push({x: x + marginX, y});
       }
+      drawGuide(panel);
+      drawLine(panel);
     });
   });
 
-  submitAnswer.addEventListener("click", () => {
-    if(!activePanel || !activePanel.drawn) return;
-    const userAnswer = answerInput.value.trim().toLowerCase();
-    if(userAnswer === answers[activePanel.index]){
-      alert("正解！");
-      if(activePanel.index < panels.length -1){
-        panels[activePanel.index + 1].locked = false;
-        drawGuide(panels[activePanel.index + 1]);
-      }
-      answerInput.value = "";
-      answerContainer.style.display = "none";
-      screenImage.src = "";
-    } else {
-      alert("不正解");
-    }
-  });
+  drawAllGuides();
 </script>
 
 </body>
