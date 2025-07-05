@@ -27,6 +27,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative;
   }
   #screen img {
     max-width: 100%;
@@ -72,6 +73,21 @@
     width: 100%; height: 100%;
     touch-action: none;
   }
+  #answerContainer {
+    margin-top: 20px;
+    width: 70vw;
+    max-width: 1000px;
+    display: none;
+    text-align: center;
+  }
+  #answerInput {
+    padding: 10px;
+    font-size: 16px;
+    width: 300px;
+    max-width: 90%;
+    border-radius: 5px;
+    border: none;
+  }
 </style>
 </head>
 <body>
@@ -89,6 +105,10 @@
   <div class="panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
+</div>
+
+<div id="answerContainer">
+  <input type="text" id="answerInput" placeholder="答えを入力してください" autocomplete="off" />
 </div>
 
 <script>
@@ -119,8 +139,15 @@
 
   const screenImage = document.getElementById('screenImage');
   const imageButtons = document.getElementById('imageButtons');
+  const answerContainer = document.getElementById('answerContainer');
+  const answerInput = document.getElementById('answerInput');
 
-  // 画像ソース配列（3枚目は配列で複数画像）
+  // 画像ごとの正解（大文字小文字区別なし）
+  const imageAnswers = ["burglary", "alley", "fetching"];
+
+  // パネルごとの正解（大文字小文字区別なし）
+  const panelAnswers = ["visits", "comment", "helps"];
+
   const imageSources = [
     "image1.jpeg",
     "image2.png",
@@ -192,10 +219,23 @@
 
   let activePanel = null;
   let isDrawing = false;
+  let currentPanelIndex = null;
 
   function isAtEnd(point, guidePoints){
     const end = guidePoints[guidePoints.length - 1];
     return (point.x === end.x && point.y === end.y);
+  }
+
+  function updateAnswerVisibility(){
+    // いずれかのパネルに線が引かれている or 画像が表示されている場合は解答欄表示
+    const anyDrawn = panels.some(p => p.drawn);
+    const imgVisible = screenImage.src && !screenImage.src.endsWith(window.location.href) && screenImage.src !== "";
+    if(anyDrawn || imgVisible){
+      answerContainer.style.display = 'block';
+    } else {
+      answerContainer.style.display = 'none';
+      answerInput.value = '';
+    }
   }
 
   panels.forEach(panel => {
@@ -213,6 +253,7 @@
 
       screenImage.src = '';
       imageButtons.style.display = 'none';
+      updateAnswerVisibility();
 
       const rect = panel.canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
@@ -245,8 +286,8 @@
       const last = panel.path[panel.path.length - 1];
       if(isAtEnd(last, panel.guidePoints)){
         panel.drawn = true;
+        currentPanelIndex = panel.index;
         if(panel.index === 2){
-          // 3枚目の特殊動作：初期画像とボタン表示
           screenImage.src = imageSources[2][0];
           imageButtons.style.display = 'block';
         } else {
@@ -255,19 +296,48 @@
         }
       } else {
         panel.path = [];
+        panel.drawn = false;
         drawGuide(panel);
         screenImage.src = '';
         imageButtons.style.display = 'none';
+        currentPanelIndex = null;
       }
+      updateAnswerVisibility();
     });
   });
 
-  // ボタン押下で3枚目画像切替
+  // 3枚目画像切替ボタン
   imageButtons.addEventListener('click', e => {
     if(e.target.tagName !== 'BUTTON') return;
     const img = e.target.getAttribute('data-img');
     if(img){
       screenImage.src = img;
+    }
+  });
+
+  // 解答判定
+  answerInput.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){
+      if(currentPanelIndex === null) return;
+      const userAns = answerInput.value.trim().toLowerCase();
+
+      // 画像が表示されていれば画像の答えで判定、それ以外はパネルの答えで判定
+      const isImageShown = screenImage.src && !screenImage.src.endsWith(window.location.href) && screenImage.src !== "";
+      if(isImageShown){
+        if(userAns === imageAnswers[currentPanelIndex]){
+          alert('正解です！');
+          // 必要ならここに正解時処理
+        } else {
+          alert('不正解です。');
+        }
+      } else {
+        if(userAns === panelAnswers[currentPanelIndex]){
+          alert('正解です！');
+          // 必要ならここに正解時処理
+        } else {
+          alert('不正解です。');
+        }
+      }
     }
   });
 
