@@ -1,4 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Witness System</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    background: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    color: white;
+    user-select: none;
+  }
+  #screen {
+    width: 70vw;
+    height: 50vh;
+    background: #333;
+    margin-top: 20px;
+    border: 3px solid #888;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  #screen img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  #answerInput {
+    margin-top: 10px;
+    padding: 10px;
+    font-size: 16px;
+    width: 70vw;
+    max-width: 600px;
+    box-sizing: border-box;
+    display: none;
+  }
+  #stageButtons {
+    margin-top: 10px;
+    display: none;
+    justify-content: center;
+    gap: 15px;
+  }
+  .stage-btn {
+    background: #444;
+    border: 2px solid #888;
+    color: white;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+    border-radius: 4px;
+  }
+  .container {
+    margin-top: 10px;
+    display: flex;
+    gap: 20px;
+    width: 70vw;
+  }
+  .panel {
+    position: relative;
+    flex: 1 1 0;
+    aspect-ratio: 7 / 1.2;
+    background: #ccc;
+    border: 2px solid #888;
+    user-select: none;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    touch-action: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="screen">
+  <img id="screenImage" src="" alt="Selected Image" />
+</div>
+
+<input type="text" id="answerInput" placeholder="答えを入力" />
+
+<div id="stageButtons">
+  <div class="stage-btn" data-index="0">ステージ1</div>
+  <div class="stage-btn" data-index="1">ステージ2</div>
+  <div class="stage-btn" data-index="2">ステージ3</div>
+</div>
+
+<div class="container">
+  <div class="panel"><canvas></canvas></div>
+  <div class="panel"><canvas></canvas></div>
+  <div class="panel"><canvas></canvas></div>
+</div>
+
 <script>
+  const answerInput = document.getElementById('answerInput');
+  const screenImage = document.getElementById('screenImage');
+  const stageButtons = document.getElementById('stageButtons');
+  const panels = Array.from(document.querySelectorAll('.panel'));
+
+  function anyPanelDrawn() {
+    return panels.some(p => p.classList.contains('drawn'));
+  }
+
+  function showAnswerInputIfNeeded() {
+    if (screenImage.src && screenImage.src !== window.location.href) {
+      answerInput.style.display = 'block';
+      stageButtons.style.display = 'flex';
+    } else if (anyPanelDrawn()) {
+      answerInput.style.display = 'block';
+      stageButtons.style.display = 'flex';
+    } else {
+      answerInput.style.display = 'none';
+      stageButtons.style.display = 'none';
+    }
+  }
+
   const panelStates = panels.map(panel => {
     const canvas = panel.querySelector('canvas');
     const ctx = canvas.getContext('2d');
@@ -57,6 +179,8 @@
     return state;
   });
 
-  // 初期描画チェック
   showAnswerInputIfNeeded();
 </script>
+
+</body>
+</html>
