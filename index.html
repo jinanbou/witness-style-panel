@@ -18,6 +18,7 @@
   }
   #screen {
     width: 70vw;
+    max-width: 700px;
     height: 50vh;
     background: #333;
     margin-top: 20px;
@@ -35,14 +36,15 @@
     margin-top: 30px;
     display: flex;
     gap: 20px;
+    flex-wrap: nowrap; /* 横並び固定 */
   }
   .panel {
     position: relative;
-    width: calc(70vw / 3);
     height: 120px;
     background: #333;
     border: 2px solid #888;
     cursor: pointer;
+    flex-shrink: 0; /* 縮まない */
   }
   .panel.locked {
     background: #111;
@@ -79,7 +81,7 @@
   <img id="screenImage" src="" alt="" />
 </div>
 
-<div class="container">
+<div class="container" id="panelContainer">
   <div class="panel" data-index="0"><canvas></canvas></div>
   <div class="panel locked" data-index="1"><canvas></canvas></div>
   <div class="panel locked" data-index="2"><canvas></canvas></div>
@@ -91,30 +93,8 @@
 </div>
 
 <script>
-  const panels = Array.from(document.querySelectorAll('.panel')).map(panel => {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    const marginX = 20;
-    const w = canvas.width - marginX * 2;
-    const h = canvas.height;
-    const amplitude = h / 16;
-    const centerY = h / 2;
-
-    const guidePoints = [];
-    const step = w / 50;
-    for(let x=0; x<=w; x+=step){
-      const theta = (x / w) * 2 * Math.PI;
-      const y = centerY - amplitude * Math.sin(theta);
-      guidePoints.push({x: x + marginX, y});
-    }
-
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: Number(panel.dataset.index) };
-  });
-
+  const panelContainer = document.getElementById('panelContainer');
+  const panels = Array.from(document.querySelectorAll('.panel'));
   const screenImage = document.getElementById('screenImage');
   const answerContainer = document.getElementById('answerContainer');
   const answerInput = document.getElementById('answerInput');
@@ -131,13 +111,62 @@
     "helps"
   ];
 
+  let panelDataList = [];
   let activePanel = null;
   let isDrawing = false;
   let currentAnswerPanelIndex = null;
 
+  function setupPanels() {
+    const containerWidth = panelContainer.clientWidth;
+    const minPanelWidth = 150; // これより狭くならないようにする
+    let panelWidth;
+
+    if (window.innerWidth >= 700) {
+      // 幅600px固定で3分割（少し余裕あり）
+      panelWidth = 180;
+    } else {
+      // 画面幅が狭い時はできるだけ詰めるがminPanelWidth以下にはしない
+      panelWidth = Math.max(minPanelWidth, (containerWidth - 40) / 3); // gap 20*2=40考慮
+    }
+
+    panelDataList = panels.map(panel => {
+      panel.style.width = panelWidth + 'px';
+      const canvas = panel.querySelector('canvas');
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+
+      // キャンバスの内部サイズ（描画サイズ）も更新（cssとは別）
+      canvas.width = panel.clientWidth;
+      canvas.height = panel.clientHeight;
+
+      const ctx = canvas.getContext('2d');
+
+      const marginX = 20;
+      const w = canvas.width - marginX * 2;
+      const h = canvas.height;
+      const amplitude = h / 16;
+      const centerY = h / 2;
+
+      const guidePoints = [];
+      const step = w / 50;
+      for(let x=0; x<=w; x+=step){
+        const theta = (x / w) * 2 * Math.PI;
+        const y = centerY - amplitude * Math.sin(theta);
+        guidePoints.push({x: x + marginX, y});
+      }
+
+      return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: Number(panel.dataset.index) };
+    });
+  }
+
   function drawGuide(panelData) {
     const ctx = panelData.ctx;
     ctx.clearRect(0, 0, panelData.canvas.width, panelData.canvas.height);
+    if(panelData.panel.classList.contains('locked')){
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0,0,panelData.canvas.width,panelData.canvas.height);
+      return;
+    }
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
@@ -195,16 +224,7 @@
   }
 
   function drawAllGuides(){
-    panels.forEach(p => {
-      if(!p.panel.classList.contains('locked')) drawGuide(p);
-      else {
-        // locked panels: fill black
-        const ctx = p.ctx;
-        ctx.clearRect(0,0,p.canvas.width,p.canvas.height);
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0,0,p.canvas.width,p.canvas.height);
-      }
-    });
+    panelDataList.forEach(drawGuide);
   }
 
   function isAtEnd(point, guidePoints){
@@ -212,75 +232,16 @@
     return (point.x === end.x && point.y === end.y);
   }
 
-  // パネル操作イベント
-  panels.forEach(panelData => {
-    panelData.canvas.addEventListener('pointerdown', e => {
-      if(panelData.panel.classList.contains('locked')) return;
-      activePanel = panelData;
-      isDrawing = true;
-
-      // 他パネルの描画リセット
-      panels.forEach(p => {
-        if(p !== panelData){
-          p.path = [];
-          p.drawn = false;
-          drawGuide(p);
-        }
-      });
-
-      screenImage.src = '';
-
-      const rect = panelData.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-
-      // スタートは左端の丸から
-      const startPoint = panelData.guidePoints[0];
-      panelData.path = [startPoint];
-
-      drawLine(panelData);
-      hideAnswerInput();
-    });
-
-    panelData.canvas.addEventListener('pointermove', e => {
-      if(!isDrawing || activePanel !== panelData) return;
-
-      const rect = panelData.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const snap = snapToGuide(mx, my, panelData.guidePoints);
-      const last = panelData.path[panelData.path.length - 1];
-      if(snap !== last){
-        panelData.path.push(snap);
-        drawLine(panelData);
+  function resetOtherPanels(exceptPanel){
+    panelDataList.forEach(p => {
+      if(p !== exceptPanel){
+        p.path = [];
+        p.drawn = false;
+        drawGuide(p);
       }
     });
-
-    panelData.canvas.addEventListener('pointerup', e => {
-      if(!isDrawing || activePanel !== panelData) return;
-      isDrawing = false;
-
-      const last = panelData.path[panelData.path.length - 1];
-      if(isAtEnd(last, panelData.guidePoints)){
-        panelData.drawn = true;
-        screenImage.src = imageSources[panelData.index];
-        showAnswerInput(panelData.index);
-        currentAnswerPanelIndex = panelData.index;
-      } else {
-        panelData.path = [];
-        panelData.drawn = false;
-        screenImage.src = '';
-        hideAnswerInput();
-      }
-    });
-  });
-
-  function showAnswerInput(panelIndex){
-    answerContainer.style.display = 'flex';
-    answerInput.value = '';
-    answerInput.focus();
-    answerMessage.textContent = '';
   }
+
   function hideAnswerInput(){
     answerContainer.style.display = 'none';
     answerInput.value = '';
@@ -288,24 +249,16 @@
     currentAnswerPanelIndex = null;
   }
 
-  answerInput.addEventListener('keydown', e => {
-    if(e.key === 'Enter' && currentAnswerPanelIndex !== null){
-      const userAns = answerInput.value.trim().toLowerCase();
-      if(userAns === answers[currentAnswerPanelIndex]){
-        answerMessage.style.color = 'lightgreen';
-        answerMessage.textContent = '正解！次のパネルが解放されました。';
-        unlockNextPanel(currentAnswerPanelIndex);
-        hideAnswerInput();
-      } else {
-        answerMessage.style.color = 'tomato';
-        answerMessage.textContent = '不正解。もう一度入力してください。';
-      }
-    }
-  });
+  function showAnswerInput(panelIndex){
+    answerContainer.style.display = 'flex';
+    answerInput.value = '';
+    answerInput.focus();
+    answerMessage.textContent = '';
+  }
 
   function unlockNextPanel(index){
-    if(index + 1 < panels.length){
-      const nextPanel = panels[index + 1];
+    if(index + 1 < panelDataList.length){
+      const nextPanel = panelDataList[index + 1];
       if(nextPanel.panel.classList.contains('locked')){
         nextPanel.panel.classList.remove('locked');
         drawGuide(nextPanel);
@@ -313,11 +266,86 @@
     }
   }
 
-  // 最初の状態で最初だけunlockして描画
-  panels.forEach((p,i) => {
-    if(i === 0) p.panel.classList.remove('locked');
+  function initEventListeners(){
+    panelDataList.forEach(panelData => {
+      panelData.canvas.addEventListener('pointerdown', e => {
+        if(panelData.panel.classList.contains('locked')) return;
+        activePanel = panelData;
+        isDrawing = true;
+        resetOtherPanels(panelData);
+        screenImage.src = '';
+
+        const rect = panelData.canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+
+        const startPoint = panelData.guidePoints[0];
+        panelData.path = [startPoint];
+        drawLine(panelData);
+        hideAnswerInput();
+      });
+
+      panelData.canvas.addEventListener('pointermove', e => {
+        if(!isDrawing || activePanel !== panelData) return;
+        const rect = panelData.canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const snap = snapToGuide(mx, my, panelData.guidePoints);
+        const last = panelData.path[panelData.path.length - 1];
+        if(snap !== last){
+          panelData.path.push(snap);
+          drawLine(panelData);
+        }
+      });
+
+      panelData.canvas.addEventListener('pointerup', e => {
+        if(!isDrawing || activePanel !== panelData) return;
+        isDrawing = false;
+        const last = panelData.path[panelData.path.length - 1];
+        if(isAtEnd(last, panelData.guidePoints)){
+          panelData.drawn = true;
+          screenImage.src = imageSources[panelData.index];
+          showAnswerInput(panelData.index);
+          currentAnswerPanelIndex = panelData.index;
+        } else {
+          panelData.path = [];
+          panelData.drawn = false;
+          screenImage.src = '';
+          hideAnswerInput();
+          drawGuide(panelData);
+        }
+      });
+    });
+
+    answerInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && currentAnswerPanelIndex !== null){
+        const userAns = answerInput.value.trim().toLowerCase();
+        if(userAns === answers[currentAnswerPanelIndex]){
+          answerMessage.style.color = 'lightgreen';
+          answerMessage.textContent = '正解！次のパネルが解放されました。';
+          unlockNextPanel(currentAnswerPanelIndex);
+          hideAnswerInput();
+        } else {
+          answerMessage.style.color = 'tomato';
+          answerMessage.textContent = '不正解。もう一度入力してください。';
+        }
+      }
+    });
+  }
+
+  // 初期化
+  function init(){
+    setupPanels();
+    drawAllGuides();
+    initEventListeners();
+  }
+
+  window.addEventListener('resize', () => {
+    setupPanels();
+    drawAllGuides();
   });
-  drawAllGuides();
+
+  init();
 
 </script>
 </body>
