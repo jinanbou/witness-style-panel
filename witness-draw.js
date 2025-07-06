@@ -146,3 +146,23 @@ panels.forEach(panel => {
     }
   });
 });
+
+const panelImages = [
+  "panel1.png",
+  "panel2.png",
+  "panel3.png"
+];
+
+const imageElement = document.getElementById("panelImage");
+
+// inside panel.canvas.addEventListener('pointerup', ...)
+if (isAtEnd(last, panel.guidePoints)) {
+  panel.drawn = true;
+  drawLine(panel);
+  imageElement.src = panelImages[panel.index]; // ★画像表示
+} else {
+  panel.path = [];
+  panel.drawn = false;
+  drawGuide(panel);
+  imageElement.src = ""; // ★画像非表示
+}
