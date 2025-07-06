@@ -275,3 +275,280 @@
 
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Witness System</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    background: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    color: white;
+    user-select: none;
+  }
+  #screen {
+    width: 70vw;
+    height: 50vh;
+    background: #333;
+    margin-top: 20px;
+    border: 3px solid #888;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  #screen img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  #answerBox {
+    margin-top: 10px;
+    display: none;
+  }
+  #answerInput {
+    padding: 5px;
+    font-size: 1em;
+  }
+  #submitAnswer {
+    padding: 5px;
+  }
+  #stageButtons, #returnButtons {
+    display: none;
+    margin-top: 15px;
+    gap: 10px;
+  }
+  .stage-btn {
+    padding: 8px 14px;
+    background: #444;
+    border: 1px solid #999;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    opacity: 1;
+  }
+  .stage-btn.locked {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .container {
+    margin-top: 10px;
+    display: flex;
+    gap: 20px;
+    width: 70vw;
+  }
+  .panel {
+    position: relative;
+    flex: 1 1 0;
+    aspect-ratio: 7 / 1.2;
+    background: #ccc;
+    border: 2px solid #888;
+    user-select: none;
+  }
+  .locked-panel {
+    background: #000 !important;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    touch-action: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="screen">
+  <img id="screenImage" src="" alt="Selected Image" />
+</div>
+
+<div id="answerBox">
+  <input type="text" id="answerInput" placeholder="答えを入力" />
+  <button id="submitAnswer">送信</button>
+</div>
+
+<div id="returnButtons">
+  <button id="toWitnessBtn" class="stage-btn">Witnessに戻る</button>
+  <button id="toStageBtn" class="stage-btn">ステージに戻る</button>
+</div>
+
+<div id="stageButtons">
+  <button class="stage-btn" data-stage="1">ステージ1</button>
+  <button class="stage-btn locked" data-stage="2">ステージ2</button>
+  <button class="stage-btn locked" data-stage="3">ステージ3</button>
+</div>
+
+<div class="container">
+  <div class="panel" data-index="0"><canvas></canvas></div>
+  <div class="panel locked-panel" data-index="1"><canvas></canvas></div>
+  <div class="panel" data-index="2"><canvas></canvas></div>
+</div>
+
+<script>
+  const screenImage = document.getElementById('screenImage');
+  const answerBox = document.getElementById('answerBox');
+  const answerInput = document.getElementById('answerInput');
+  const submitBtn = document.getElementById('submitAnswer');
+
+  const panelAnswers = ["VISITS", "COMMENT", "HELPS"];
+  let panelUnlocked = [true, false, true];
+  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
+    const canvas = panel.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const marginX = 20;
+    let w, h;
+
+    function resize() {
+      const rect = panel.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      w = canvas.width - marginX * 2;
+      h = canvas.height;
+      updateGuide();
+      draw();
+    }
+
+    let guidePoints = [];
+    function updateGuide() {
+      guidePoints = [];
+      const amplitude = h / 16;
+      const centerY = h / 2;
+      const step = w / 50;
+      for (let x = 0; x <= w; x += step) {
+        const theta = (x / w) * 2 * Math.PI;
+        const y = centerY - amplitude * Math.sin(theta);
+        guidePoints.push({ x: x + marginX, y });
+      }
+    }
+
+    let path = [];
+    let drawn = false;
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!panelUnlocked[i]) return;
+
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      guidePoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      if (drawn && path.length > 1) {
+        ctx.strokeStyle = '#3ad';
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for (let j = 1; j < path.length; j++) {
+          ctx.lineTo(path[j].x, path[j].y);
+        }
+        ctx.stroke();
+      }
+
+      const start = guidePoints[0];
+      ctx.fillStyle = (isDrawing && activePanelIndex === i) ? '#3ad' : '#3ad';
+      ctx.beginPath();
+      ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    return {
+      panel, canvas, ctx,
+      guidePoints: () => guidePoints,
+      path: () => path,
+      setPath: p => { path = p; draw(); },
+      clearPath: () => { path = []; drawn = false; draw(); },
+      isDrawn: () => drawn,
+      setDrawn: d => { drawn = d; draw(); },
+      draw,
+      index: i,
+      resize
+    };
+  });
+
+  let isDrawing = false;
+  let activePanelIndex = null;
+
+  function snapToGuide(x, y, guidePoints) {
+    return guidePoints.reduce((closest, pt) => {
+      const d1 = (pt.x - x) ** 2 + (pt.y - y) ** 2;
+      const d2 = (closest.x - x) ** 2 + (closest.y - y) ** 2;
+      return d1 < d2 ? pt : closest;
+    });
+  }
+
+  function isAtEnd(point, guidePoints) {
+    const end = guidePoints[guidePoints.length - 1];
+    return (point.x === end.x && point.y === end.y);
+  }
+
+  panels.forEach(p => {
+    const index = p.index;
+    p.canvas.addEventListener('pointerdown', e => {
+      if (!panelUnlocked[index]) return;
+      isDrawing = true;
+      activePanelIndex = index;
+      p.setPath([p.guidePoints()[0]]);
+    });
+
+    p.canvas.addEventListener('pointermove', e => {
+      if (!isDrawing || activePanelIndex !== index) return;
+      const rect = p.canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const snap = snapToGuide(x, y, p.guidePoints());
+      const last = p.path()[p.path().length - 1];
+      if (snap.x !== last.x || snap.y !== last.y) {
+        const newPath = [...p.path(), snap];
+        p.setPath(newPath);
+      }
+    });
+
+    p.canvas.addEventListener('pointerup', () => {
+      if (!isDrawing || activePanelIndex !== index) return;
+      isDrawing = false;
+      const last = p.path()[p.path().length - 1];
+      if (isAtEnd(last, p.guidePoints())) {
+        p.setDrawn(true);
+        screenImage.src = `panel${index + 1}.png`;
+        answerBox.style.display = 'block';
+        answerInput.value = '';
+        answerInput.focus();
+      } else {
+        p.clearPath();
+        screenImage.src = '';
+        answerBox.style.display = 'none';
+      }
+    });
+  });
+
+  submitBtn.addEventListener('click', () => {
+    const input = answerInput.value.trim().toUpperCase();
+    const index = activePanelIndex;
+    if (input === panelAnswers[index]) {
+      alert("正解！");
+      if (index === 0) {
+        panelUnlocked[1] = true;
+        document.querySelectorAll('.panel')[1].classList.remove('locked-panel');
+        panels[1].draw();
+      }
+    } else {
+      alert("不正解！");
+    }
+  });
+</script>
+
+</body>
+</html>
