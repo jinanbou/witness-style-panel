@@ -17,6 +17,23 @@
       user-select: none;
     }
 
+    #image-viewer {
+      margin-top: 20px;
+      width: 70vw;
+      height: 40vh;
+      background: #333;
+      border: 3px solid #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #image-viewer img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
     .container {
       display: flex;
       gap: 20px;
@@ -43,37 +60,21 @@
       height: 100%;
       touch-action: none;
     }
-
-    #image-viewer {
-      margin-top: 20px;
-      width: 70vw;
-      height: 40vh;
-      background: #333;
-      border: 3px solid #888;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #image-viewer img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
   </style>
 </head>
 <body>
 
   <h1>Witness Panels</h1>
 
+  <!-- 画像表示欄（パネルの上に移動） -->
+  <div id="image-viewer">
+    <img id="panelImage" src="" alt="Panel image" />
+  </div>
+
   <div class="container">
     <div class="panel"><canvas></canvas></div>
     <div class="panel locked-panel"><canvas></canvas></div>
     <div class="panel"><canvas></canvas></div>
-  </div>
-
-  <div id="image-viewer">
-    <img id="panelImage" src="" alt="Panel image" />
   </div>
 
   <script src="witness-draw.js"></script>
