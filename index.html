@@ -150,7 +150,6 @@ function updatePanelsLock() {
   } else {
     panels[1].locked = true;
     panels[1].panel.classList.add('locked-panel');
-    // Clear line if locked
     panels[1].path = [];
     panels[1].drawn = false;
   }
@@ -342,7 +341,6 @@ document.getElementById('submitAnswer').addEventListener('click', () => {
 document.querySelectorAll('.stage-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const stageNum = btn.getAttribute('data-stage');
-    // ボタンのロック判定をここで行う（暗くしてるだけなので無効化は不要）
     if (btn.classList.contains('locked')) return;
     screenImage.src = `stage${stageNum}.png`;
     updateReturnButtons();
