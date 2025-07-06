@@ -1,80 +1,80 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Witness System</title>
-<style>
-  body {
-    margin: 0; padding: 0;
-    background: #222;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100vh;
-    color: white;
-    user-select: none;
-  }
-  #screen {
-    width: 70vw;
-    height: 50vh;
-    background: #333;
-    margin-top: 20px;
-    border: 3px solid #888;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-  }
-  #screen img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-  .container {
-    margin-top: 10px;
-    display: flex;
-    gap: 20px;
-    width: 70vw;
-  }
-  .panel {
-    position: relative;
-    flex: 1 1 0;
-    aspect-ratio: 7 / 1.2;
-    background: #ccc;
-    border: 2px solid #888;
-    user-select: none;
-  }
-  canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    touch-action: none;
-  }
-  #stageButtons {
-    display: none;
-    margin-top: 15px;
-    gap: 10px;
-  }
-  .stage-btn {
-    padding: 8px 14px;
-    background: #444;
-    border: 1px solid #999;
-    color: white;
-    cursor: pointer;
-    border-radius: 5px;
-  }
-  #backButton {
-    display: none;
-    margin-top: 10px;
-    padding: 8px 14px;
-    background: #555;
-    color: white;
-    border: 1px solid #aaa;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Witness System</title>
+  <style>
+    body {
+      margin: 0; padding: 0;
+      background: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      user-select: none;
+    }
+    #screen {
+      width: 70vw;
+      height: 50vh;
+      background: #333;
+      margin-top: 20px;
+      border: 3px solid #888;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    #screen img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .container {
+      margin-top: 10px;
+      display: flex;
+      gap: 20px;
+      width: 70vw;
+    }
+    .panel {
+      position: relative;
+      flex: 1 1 0;
+      aspect-ratio: 7 / 1.2;
+      background: #ccc;
+      border: 2px solid #888;
+      user-select: none;
+    }
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      touch-action: none;
+    }
+    #stageButtons {
+      display: none;
+      margin-top: 15px;
+      gap: 10px;
+    }
+    .stage-btn {
+      padding: 8px 14px;
+      background: #444;
+      border: 1px solid #999;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #backButton {
+      display: none;
+      margin-top: 10px;
+      padding: 8px 14px;
+      background: #666;
+      border: 1px solid #aaa;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
@@ -82,12 +82,12 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
-<button id="backButton">戻る</button>
+<div id="backButton">戻る</div>
 
 <div id="stageButtons">
-  <button class="stage-btn" data-stage="1">ステージ1</button>
-  <button class="stage-btn" data-stage="2">ステージ2</button>
-  <button class="stage-btn" data-stage="3">ステージ3</button>
+  <button class="stage-btn" onclick="showStageImage(1)">ステージ1</button>
+  <button class="stage-btn" onclick="showStageImage(2)">ステージ2</button>
+  <button class="stage-btn" onclick="showStageImage(3)">ステージ3</button>
 </div>
 
 <div class="container">
@@ -97,10 +97,6 @@
 </div>
 
 <script>
-const screenImage = document.getElementById('screenImage');
-const backButton = document.getElementById('backButton');
-const stageButtons = document.getElementById('stageButtons');
-
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -125,33 +121,42 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
   return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
 });
 
+const screenImage = document.getElementById('screenImage');
+const stageButtons = document.getElementById('stageButtons');
+const backButton = document.getElementById('backButton');
+
 function updateStageButtonsVisibility() {
   const panel3 = panels[2];
-  if (panel3.path.length >= 2 && isAtEnd(panel3.path[panel3.path.length - 1], panel3.guidePoints)) {
-    stageButtons.style.display = 'flex';
-  } else {
-    stageButtons.style.display = 'none';
-  }
+  const isDrawn = panel3.path.length > 1 && isAtEnd(panel3.path[panel3.path.length - 1], panel3.guidePoints);
+  stageButtons.style.display = isDrawn ? 'flex' : 'none';
+  updateBackButton();
 }
 
 function updateBackButton() {
   const src = screenImage.src;
-  if (src.includes('stage')) {
-    backButton.style.display = 'block';
-    backButton.textContent = 'Witnessに戻る';
-    backButton.onclick = () => {
-      screenImage.src = 'panel3.png';
-    };
-  } else if (src.includes('panel')) {
+  if (src.includes('panel')) {
     backButton.style.display = 'block';
     backButton.textContent = 'ステージに戻る';
     backButton.onclick = () => {
       screenImage.src = '';
       stageButtons.style.display = 'flex';
+      updateBackButton();
+    };
+  } else if (src.includes('stage')) {
+    backButton.style.display = 'block';
+    backButton.textContent = 'Witnessに戻る';
+    backButton.onclick = () => {
+      screenImage.src = 'panel3.png';
+      updateBackButton();
     };
   } else {
     backButton.style.display = 'none';
   }
+}
+
+function showStageImage(n) {
+  screenImage.src = `stage${n}.png`;
+  updateBackButton();
 }
 
 function drawGuide(panel) {
@@ -216,13 +221,13 @@ function drawAllGuides(){
   panels.forEach(drawGuide);
 }
 
+let activePanel = null;
+let isDrawing = false;
+
 function isAtEnd(point, guidePoints){
   const end = guidePoints[guidePoints.length - 1];
   return (point.x === end.x && point.y === end.y);
 }
-
-let activePanel = null;
-let isDrawing = false;
 
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
@@ -240,16 +245,15 @@ panels.forEach(panel => {
     const rect = panel.canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
-
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
 
     drawLine(panel);
+    updateStageButtonsVisibility();
   });
 
   panel.canvas.addEventListener('pointermove', e => {
     if(!isDrawing || activePanel !== panel) return;
-
     const rect = panel.canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -264,33 +268,18 @@ panels.forEach(panel => {
   panel.canvas.addEventListener('pointerup', () => {
     if(!isDrawing || activePanel !== panel) return;
     isDrawing = false;
-
     const last = panel.path[panel.path.length - 1];
-    if (isAtEnd(last, activePanel.guidePoints)) {
-      activePanel.drawn = true;
-      screenImage.src = `panel${activePanel.index + 1}.png`;
-    } else {
-      activePanel.path = [];
-      drawGuide(activePanel);
-      screenImage.src = '';
+    if (isAtEnd(last, panel.guidePoints)) {
+      panel.drawn = true;
+      if (panel.index === 2) {
+        screenImage.src = `panel3.png`;
+        updateStageButtonsVisibility();
+        updateBackButton();
+      }
     }
-
-    updateStageButtonsVisibility();
   });
 });
 
-// ステージボタン処理
-document.querySelectorAll('.stage-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const stageNum = btn.dataset.stage;
-    screenImage.src = `stage${stageNum}.png`;
-  });
-});
-
-// 画像読み込み完了時に戻るボタン切り替え
-screenImage.addEventListener('load', updateBackButton);
-
-// 初期描画
 drawAllGuides();
 </script>
 
