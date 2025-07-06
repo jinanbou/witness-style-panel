@@ -109,9 +109,9 @@
 </div>
 
 <div class="container">
-  <div class="panel"><canvas></canvas></div>
-  <div class="panel locked-panel"><canvas></canvas></div>
-  <div class="panel"><canvas></canvas></div>
+  <div class="panel" id="panel1"><canvas></canvas></div>
+  <div class="panel locked-panel" id="panel2"><canvas></canvas></div>
+  <div class="panel" id="panel3"><canvas></canvas></div>
 </div>
 
 <script>
@@ -144,6 +144,52 @@ document.getElementById('toStageBtn').addEventListener('click', () => {
 document.getElementById('toWitnessBtn').addEventListener('click', () => {
   document.getElementById('screenImage').src = '';
   updateReturnButtons();
+});
+
+// 初期化（線描画用）
+const canvasList = document.querySelectorAll('.panel canvas');
+canvasList.forEach((canvas, i) => {
+  const ctx = canvas.getContext('2d');
+  const panel = canvas.parentElement;
+
+  // サイズ設定
+  const resize = () => {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    drawGuide();
+  };
+  window.addEventListener('resize', resize);
+
+  // ガイド描画
+  const drawGuide = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (panel.classList.contains('locked-panel')) return;
+
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 6;
+    const marginX = 20;
+    const w = canvas.width - marginX * 2;
+    const h = canvas.height;
+    const amplitude = h / 16;
+    const centerY = h / 2;
+
+    ctx.beginPath();
+    for (let x = 0; x <= w; x += w / 50) {
+      const theta = (x / w) * 2 * Math.PI;
+      const y = centerY - amplitude * Math.sin(theta);
+      if (x === 0) ctx.moveTo(x + marginX, y);
+      else ctx.lineTo(x + marginX, y);
+    }
+    ctx.stroke();
+
+    // スタート地点マーク
+    ctx.fillStyle = '#3ad';
+    ctx.beginPath();
+    ctx.arc(marginX, centerY, 6, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  resize();
 });
 </script>
 
