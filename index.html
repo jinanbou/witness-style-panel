@@ -66,7 +66,7 @@
     touch-action: none;
   }
   #stageButtons {
-    display: none;
+    display: flex;
     margin-top: 15px;
     gap: 10px;
   }
@@ -109,7 +109,47 @@
 </div>
 
 <script>
-// 前回のJavaScriptそのまま（行数制限のため省略）
+const screenImage = document.getElementById('screenImage');
+const stageButtons = document.getElementById('stageButtons');
+const stageBtnEls = document.querySelectorAll('.stage-btn');
+
+const stageImages = {
+  1: 'stage1.png',
+  2: 'stage2.png',
+  3: 'stage3.png'
+};
+
+let currentStage = null;
+const stageAnswers = {
+  1: 'burglary',
+  2: 'alley',
+  3: 'fetching'
+};
+
+stageBtnEls.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const stage = btn.getAttribute('data-stage');
+    const imgSrc = stageImages[stage];
+    screenImage.src = imgSrc;
+    stageButtons.style.display = 'none';
+    document.getElementById('answerBox').style.display = 'block';
+    currentStage = parseInt(stage);
+  });
+});
+
+document.getElementById('submitAnswer').addEventListener('click', () => {
+  const input = document.getElementById('answerInput');
+  const answer = input.value.trim().toLowerCase();
+
+  if (currentStage && stageAnswers[currentStage] === answer) {
+    const nextBtn = document.querySelector(`.stage-btn[data-stage="${currentStage + 1}"]`);
+    if (nextBtn) nextBtn.classList.remove('locked');
+    screenImage.src = '';
+    stageButtons.style.display = 'flex';
+    input.value = '';
+    document.getElementById('answerBox').style.display = 'none';
+  }
+});
 </script>
 
 </body>
