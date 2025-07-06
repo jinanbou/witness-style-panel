@@ -113,6 +113,7 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
 });
 
 const stageButtons = document.getElementById('stageButtons');
+const screenImage = document.getElementById('screenImage');
 
 function isAtEnd(point, guidePoints){
   const end = guidePoints[guidePoints.length - 1];
@@ -226,6 +227,8 @@ panels.forEach(panel => {
       }
     });
 
+    screenImage.src = '';
+
     const rect = panel.canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
@@ -257,9 +260,12 @@ panels.forEach(panel => {
     const last = panel.path[panel.path.length - 1];
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
+      screenImage.src = `panel${panel.index + 1}.png`;
     } else {
       panel.path = [];
+      screenImage.src = '';
     }
+
     drawLine(panel);
     updatePanelsLock();
     updateStageButtonsVisibility();
