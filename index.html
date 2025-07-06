@@ -150,6 +150,9 @@ function updatePanelsLock() {
   } else {
     panels[1].locked = true;
     panels[1].panel.classList.add('locked-panel');
+    // Clear line if locked
+    panels[1].path = [];
+    panels[1].drawn = false;
   }
 
   panels[2].locked = false;
@@ -228,6 +231,8 @@ function snapToGuide(x, y, guidePoints){
 let activePanel = null;
 let isDrawing = false;
 
+const screenImage = document.getElementById('screenImage');
+
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.locked) return;
@@ -291,32 +296,34 @@ function updateAnswerBoxVisibility() {
 }
 
 function updateReturnButtons() {
-  const img = document.getElementById('screenImage').src;
+  const imgSrc = screenImage.src;
   const returnBtns = document.getElementById('returnButtons');
   const toWitnessBtn = document.getElementById('toWitnessBtn');
   const toStageBtn = document.getElementById('toStageBtn');
 
-  if (img.includes('panel')) {
+  if (imgSrc.endsWith('panel1.png') || imgSrc.endsWith('panel2.png') || imgSrc.endsWith('panel3.png')) {
     returnBtns.style.display = 'flex';
     toWitnessBtn.style.display = 'block';
     toStageBtn.style.display = 'none';
-  } else if (img.includes('stage')) {
+  } else if (imgSrc.endsWith('stage1.png') || imgSrc.endsWith('stage2.png') || imgSrc.endsWith('stage3.png')) {
     returnBtns.style.display = 'flex';
     toWitnessBtn.style.display = 'none';
     toStageBtn.style.display = 'block';
   } else {
     returnBtns.style.display = 'none';
+    toWitnessBtn.style.display = 'none';
+    toStageBtn.style.display = 'none';
   }
 }
 
 document.getElementById('toWitnessBtn').addEventListener('click', () => {
-  document.getElementById('screenImage').src = '';
+  screenImage.src = '';
   document.getElementById('stageButtons').style.display = 'none';
   updateReturnButtons();
 });
 
 document.getElementById('toStageBtn').addEventListener('click', () => {
-  document.getElementById('screenImage').src = 'panel3.png';
+  screenImage.src = 'panel3.png';
   document.getElementById('stageButtons').style.display = 'flex';
   updateReturnButtons();
 });
@@ -335,13 +342,9 @@ document.getElementById('submitAnswer').addEventListener('click', () => {
 document.querySelectorAll('.stage-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const stageNum = btn.getAttribute('data-stage');
-    // ステージ解放判定
-    const stageIndex = parseInt(stageNum, 10) - 1;
-    if(stageIndex > 0 && !panelAnswersCorrect[stageIndex - 1]){
-      // ロック中は押せないはずですが念のため
-      return;
-    }
-    document.getElementById('screenImage').src = `stage${stageNum}.png`;
+    // ボタンのロック判定をここで行う（暗くしてるだけなので無効化は不要）
+    if (btn.classList.contains('locked')) return;
+    screenImage.src = `stage${stageNum}.png`;
     updateReturnButtons();
   });
 });
@@ -349,7 +352,6 @@ document.querySelectorAll('.stage-btn').forEach(btn => {
 drawAllGuides();
 updatePanelsLock();
 updateAnswerBoxVisibility();
-updateReturnButtons();
 </script>
 
 </body>
