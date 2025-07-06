@@ -53,7 +53,9 @@ function drawGuide(panel) {
   ctx.stroke();
 
   const start = panel.guidePoints[0];
-  ctx.fillStyle = (panel.drawn || (isDrawing && activePanel === panel)) ? '#3ad' : '#fff';
+  const last = panel.path[panel.path.length - 1];
+  const reachedEnd = isAtEnd(last || {}, panel.guidePoints);
+  ctx.fillStyle = (reachedEnd || (isDrawing && activePanel === panel)) ? '#3ad' : '#fff';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
@@ -146,12 +148,12 @@ panels.forEach(panel => {
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
       drawLine(panel);
-      imageElement.src = panelImages[panel.index]; // 画像表示
+      imageElement.src = panelImages[panel.index];
     } else {
       panel.path = [];
       panel.drawn = false;
       drawGuide(panel);
-      imageElement.src = ""; // 線が不正なら画像非表示
+      imageElement.src = "";
     }
   });
 });
