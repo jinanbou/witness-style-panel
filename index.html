@@ -42,7 +42,7 @@
   #submitAnswer {
     padding: 5px;
   }
-  #stageButtons {
+  #stageButtons, #returnButtons {
     display: none;
     margin-top: 15px;
     gap: 10px;
@@ -94,6 +94,11 @@
 <div id="answerBox">
   <input type="text" id="answerInput" placeholder="答えを入力" />
   <button id="submitAnswer">送信</button>
+</div>
+
+<div id="returnButtons">
+  <button id="toWitnessBtn" class="stage-btn">Witnessに戻る</button>
+  <button id="toStageBtn" class="stage-btn">ステージに戻る</button>
 </div>
 
 <div id="stageButtons">
@@ -272,6 +277,7 @@ panels.forEach(panel => {
     }
     updatePanelsLock();
     updateAnswerBoxVisibility();
+    updateReturnButtons();
     drawAllGuides();
     panels.forEach(p => {
       if(p.drawn) drawLine(p);
@@ -283,6 +289,37 @@ function updateAnswerBoxVisibility() {
   const visible = panels.some(p => p.drawn);
   document.getElementById('answerBox').style.display = visible ? 'block' : 'none';
 }
+
+function updateReturnButtons() {
+  const img = document.getElementById('screenImage').src;
+  const returnBtns = document.getElementById('returnButtons');
+  const toWitnessBtn = document.getElementById('toWitnessBtn');
+  const toStageBtn = document.getElementById('toStageBtn');
+
+  if (img.includes('panel')) {
+    returnBtns.style.display = 'flex';
+    toWitnessBtn.style.display = 'block';
+    toStageBtn.style.display = 'none';
+  } else if (img.includes('stage')) {
+    returnBtns.style.display = 'flex';
+    toWitnessBtn.style.display = 'none';
+    toStageBtn.style.display = 'block';
+  } else {
+    returnBtns.style.display = 'none';
+  }
+}
+
+document.getElementById('toWitnessBtn').addEventListener('click', () => {
+  document.getElementById('screenImage').src = '';
+  document.getElementById('stageButtons').style.display = 'none';
+  updateReturnButtons();
+});
+
+document.getElementById('toStageBtn').addEventListener('click', () => {
+  document.getElementById('screenImage').src = 'panel3.png';
+  document.getElementById('stageButtons').style.display = 'flex';
+  updateReturnButtons();
+});
 
 document.getElementById('submitAnswer').addEventListener('click', () => {
   const value = document.getElementById('answerInput').value.trim().toLowerCase();
@@ -299,6 +336,7 @@ document.querySelectorAll('.stage-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const stageNum = btn.getAttribute('data-stage');
     document.getElementById('screenImage').src = `stage${stageNum}.png`;
+    updateReturnButtons();
   });
 });
 
