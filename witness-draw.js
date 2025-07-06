@@ -69,22 +69,28 @@ function snapToGuide(x, y, guidePoints){
   return closest;
 }
 
-function drawLine(panel){
+function drawLine(panel) {
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+
+  // ロックされているパネルは線を描かない
+  if (panel.panel.classList.contains('locked-panel')) return;
+
   drawGuide(panel);
-  if(panel.path.length < 2) return;
+  if (panel.path.length < 2) return;
+
   ctx.strokeStyle = '#3ad';
   ctx.lineWidth = 6;
-  ctx.lineCap = 'round';   // 端を丸く
-  ctx.lineJoin = 'round';  // 角も丸く
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(panel.path[0].x, panel.path[0].y);
-  for(let i=1; i<panel.path.length; i++){
+  for (let i = 1; i < panel.path.length; i++) {
     ctx.lineTo(panel.path[i].x, panel.path[i].y);
   }
   ctx.stroke();
 }
+
 
 function drawAllGuides(){
   panels.forEach(drawGuide);
