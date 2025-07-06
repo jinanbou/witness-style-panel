@@ -45,8 +45,8 @@
     border: 2px solid #888;
     user-select: none;
   }
-  .hidden {
-    display: none !important;
+  .locked-panel {
+    background: #000 !important;
   }
   canvas {
     position: absolute;
@@ -129,28 +129,26 @@ function updateStageButtonsVisibility() {
 }
 
 function updatePanelsLock() {
-  // panel0: 常に有効
   panels[0].locked = false;
-  panels[0].panel.classList.remove('hidden');
+  panels[0].panel.classList.remove('locked-panel');
 
-  // panel1: panel0が正解済みかどうかで制御
   const panel0Solved = panels[0].drawn && isAtEnd(panels[0].path[panels[0].path.length - 1], panels[0].guidePoints);
   if (panel0Solved) {
     panels[1].locked = false;
-    panels[1].panel.classList.remove('hidden');
+    panels[1].panel.classList.remove('locked-panel');
   } else {
     panels[1].locked = true;
-    panels[1].panel.classList.add('hidden');
+    panels[1].panel.classList.add('locked-panel');
   }
 
-  // panel2: 常に有効
   panels[2].locked = false;
-  panels[2].panel.classList.remove('hidden');
+  panels[2].panel.classList.remove('locked-panel');
 }
 
 function drawGuide(panel) {
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+  if (panel.locked) return;
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
@@ -164,7 +162,7 @@ function drawGuide(panel) {
   ctx.stroke();
 
   const start = panel.guidePoints[0];
-  ctx.fillStyle = '#3ad';  // 水色
+  ctx.fillStyle = '#3ad';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
