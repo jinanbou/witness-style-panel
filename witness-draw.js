@@ -1,3 +1,5 @@
+// witness-draw.js
+
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -24,6 +26,14 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
 
 let activePanel = null;
 let isDrawing = false;
+
+const panelImages = [
+  "panel1.png",
+  "panel2.png",
+  "panel3.png"
+];
+
+const imageElement = document.getElementById("panelImage");
 
 function drawGuide(panel) {
   const ctx = panel.ctx;
@@ -96,14 +106,6 @@ function drawAllGuides() {
 
 drawAllGuides();
 
-const panelImages = [
-  "panel1.png",
-  "panel2.png",
-  "panel3.png"
-];
-
-const imageElement = document.getElementById("panelImage");
-
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
@@ -140,7 +142,6 @@ panels.forEach(panel => {
   panel.canvas.addEventListener('pointerup', () => {
     if (!isDrawing || activePanel !== panel) return;
     isDrawing = false;
-
     const last = panel.path[panel.path.length - 1];
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
@@ -150,7 +151,7 @@ panels.forEach(panel => {
       panel.path = [];
       panel.drawn = false;
       drawGuide(panel);
-      imageElement.src = ""; // 線が正しくなければ画像非表示
+      imageElement.src = ""; // 線が不正なら画像非表示
     }
   });
 });
