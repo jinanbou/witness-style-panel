@@ -1,3 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Witness System</title>
+<style>
+  body {
+    margin: 0; padding: 0;
+    background: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    color: white;
+    user-select: none;
+  }
+  #screen {
+    width: 70vw;
+    height: 50vh;
+    background: #333;
+    margin-top: 20px;
+    border: 3px solid #888;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  #screen img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  #answerBox {
+    margin-top: 10px;
+    display: none;
+  }
+  #answerInput {
+    padding: 5px;
+    font-size: 1em;
+  }
+  #submitAnswer {
+    padding: 5px;
+  }
+  #stageButtons, #returnButtons {
+    display: none;
+    margin-top: 15px;
+    gap: 10px;
+  }
+  .stage-btn {
+    padding: 8px 14px;
+    background: #444;
+    border: 1px solid #999;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    opacity: 1;
+  }
+  .stage-btn.locked {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .container {
+    margin-top: 10px;
+    display: flex;
+    gap: 20px;
+    width: 70vw;
+  }
+  .panel {
+    position: relative;
+    flex: 1 1 0;
+    aspect-ratio: 7 / 1.2;
+    background: #ccc;
+    border: 2px solid #888;
+    user-select: none;
+  }
+  .locked-panel {
+    background: #000 !important;
+    pointer-events: none;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    touch-action: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="screen">
+  <img id="screenImage" src="" alt="Selected Image" />
+</div>
+
+<div id="answerBox">
+  <input type="text" id="answerInput" placeholder="答えを入力" />
+  <button id="submitAnswer">送信</button>
+</div>
+
+<div id="returnButtons">
+  <button id="toWitnessBtn" class="stage-btn">Witnessに戻る</button>
+  <button id="toStageBtn" class="stage-btn">ステージに戻る</button>
+</div>
+
+<div id="stageButtons">
+  <button class="stage-btn" data-stage="1">ステージ1</button>
+  <button class="stage-btn locked" data-stage="2">ステージ2</button>
+  <button class="stage-btn locked" data-stage="3">ステージ3</button>
+</div>
+
+<div class="container">
+  <div class="panel" id="panel1"><canvas></canvas></div>
+  <div class="panel locked-panel" id="panel2"><canvas></canvas></div>
+  <div class="panel" id="panel3"><canvas></canvas></div>
+</div>
+
 <script>
 const screenImage = document.getElementById('screenImage');
 const answerBox = document.getElementById('answerBox');
@@ -14,13 +130,13 @@ const stageAnswers = ["BURGLARY", "ALLEY", "FETCHING"];
 let panels = Array.from(document.querySelectorAll('.panel')).map((panel, index) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
-  const guidePoints = [];
   return {
-    panel, canvas, ctx, guidePoints,
+    panel, canvas, ctx,
+    guidePoints: [],
     path: [],
     drawn: false,
     index,
-    locked: index === 1, // パネル2は最初はロック
+    locked: index === 1, // パネル2はロック
   };
 });
 
@@ -54,13 +170,14 @@ function drawGuide(panel) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (panel.locked) return;
 
+  const pts = panel.guidePoints;
+  if (pts.length === 0) return;
+
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  const pts = panel.guidePoints;
-  if (pts.length === 0) return;
   ctx.moveTo(pts[0].x, pts[0].y);
   for (let i = 1; i < pts.length; i++) {
     ctx.lineTo(pts[i].x, pts[i].y);
@@ -68,7 +185,7 @@ function drawGuide(panel) {
   ctx.stroke();
 
   const start = pts[0];
-  const shouldHighlight = panel === activePanel && isDrawing || panel.drawn;
+  const shouldHighlight = panel.drawn || (panel === activePanel && isDrawing);
   ctx.fillStyle = shouldHighlight ? '#3ad' : '#fff';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
@@ -93,11 +210,9 @@ function drawLine(panel) {
 }
 
 function setupPanel(panelObj) {
-  const { canvas, panel, ctx } = panelObj;
-
-  const rect = panel.getBoundingClientRect();
-  canvas.width = panel.clientWidth;
-  canvas.height = panel.clientHeight;
+  const { canvas } = panelObj;
+  canvas.width = panelObj.panel.clientWidth;
+  canvas.height = panelObj.panel.clientHeight;
 
   const marginX = 20;
   const w = canvas.width - marginX * 2;
@@ -120,7 +235,7 @@ function setupPanel(panelObj) {
 let activePanel = null;
 let isDrawing = false;
 
-panels.forEach(panel => setupPanel(panel));
+panels.forEach(setupPanel);
 
 panels.forEach(panel => {
   const canvas = panel.canvas;
@@ -129,6 +244,7 @@ panels.forEach(panel => {
     if (panel.locked) return;
     activePanel = panel;
     isDrawing = true;
+
     panels.forEach(p => {
       if (p !== panel && !p.drawn) {
         p.path = [];
@@ -139,7 +255,6 @@ panels.forEach(panel => {
     const rect = canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
-
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
     drawLine(panel);
@@ -219,4 +334,39 @@ submitAnswer.addEventListener('click', () => {
   }
   answerInput.value = '';
 });
+
+function updateReturnButtons() {
+  const img = document.getElementById('screenImage').src;
+  const returnBtns = document.getElementById('returnButtons');
+  const toWitnessBtn = document.getElementById('toWitnessBtn');
+  const toStageBtn = document.getElementById('toStageBtn');
+
+  if (!img || img.endsWith('/')) {
+    returnBtns.style.display = 'none';
+    toWitnessBtn.style.display = 'none';
+    toStageBtn.style.display = 'none';
+  } else if (img.includes('panel')) {
+    returnBtns.style.display = 'flex';
+    toWitnessBtn.style.display = 'block';
+    toStageBtn.style.display = 'none';
+  } else if (img.includes('stage')) {
+    returnBtns.style.display = 'flex';
+    toWitnessBtn.style.display = 'none';
+    toStageBtn.style.display = 'block';
+  }
+}
+
+document.getElementById('toStageBtn').addEventListener('click', () => {
+  document.getElementById('screenImage').src = 'panel3.png';
+  updateReturnButtons();
+});
+
+document.getElementById('toWitnessBtn').addEventListener('click', () => {
+  document.getElementById('screenImage').src = '';
+  updateReturnButtons();
+  answerBox.style.display = 'none';
+});
 </script>
+
+</body>
+</html>
