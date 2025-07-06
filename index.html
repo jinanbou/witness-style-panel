@@ -31,6 +31,18 @@
       max-height: 100%;
       object-fit: contain;
     }
+    #backButton {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 6px 12px;
+      background: #555;
+      border: 1px solid #aaa;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+      display: none;
+    }
     .container {
       margin-top: 10px;
       display: flex;
@@ -64,30 +76,19 @@
       cursor: pointer;
       border-radius: 5px;
     }
-    #backButton {
-      display: none;
-      margin-top: 10px;
-      padding: 8px 14px;
-      background: #666;
-      border: 1px solid #aaa;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
 
 <div id="screen">
   <img id="screenImage" src="" alt="Selected Image" />
+  <button id="backButton">戻る</button>
 </div>
 
-<div id="backButton">戻る</div>
-
 <div id="stageButtons">
-  <button class="stage-btn" onclick="showStageImage(1)">ステージ1</button>
-  <button class="stage-btn" onclick="showStageImage(2)">ステージ2</button>
-  <button class="stage-btn" onclick="showStageImage(3)">ステージ3</button>
+  <button class="stage-btn" onclick="showImage('stage1.png')">ステージ1</button>
+  <button class="stage-btn" onclick="showImage('stage2.png')">ステージ2</button>
+  <button class="stage-btn" onclick="showImage('stage3.png')">ステージ3</button>
 </div>
 
 <div class="container">
@@ -125,16 +126,17 @@ const screenImage = document.getElementById('screenImage');
 const stageButtons = document.getElementById('stageButtons');
 const backButton = document.getElementById('backButton');
 
-function updateStageButtonsVisibility() {
-  const panel3 = panels[2];
-  const isDrawn = panel3.path.length > 1 && isAtEnd(panel3.path[panel3.path.length - 1], panel3.guidePoints);
-  stageButtons.style.display = isDrawn ? 'flex' : 'none';
-  updateBackButton();
-}
-
 function updateBackButton() {
   const src = screenImage.src;
-  if (src.includes('panel')) {
+  const filename = src.substring(src.lastIndexOf('/') + 1);
+  if (["panel1.png", "panel2.png", "panel3.png"].includes(filename)) {
+    backButton.style.display = 'block';
+    backButton.textContent = 'Witnessに戻る';
+    backButton.onclick = () => {
+      screenImage.src = 'panel3.png';
+      updateBackButton();
+    };
+  } else if (["stage1.png", "stage2.png", "stage3.png"].includes(filename)) {
     backButton.style.display = 'block';
     backButton.textContent = 'ステージに戻る';
     backButton.onclick = () => {
@@ -142,20 +144,14 @@ function updateBackButton() {
       stageButtons.style.display = 'flex';
       updateBackButton();
     };
-  } else if (src.includes('stage')) {
-    backButton.style.display = 'block';
-    backButton.textContent = 'Witnessに戻る';
-    backButton.onclick = () => {
-      screenImage.src = 'panel3.png';
-      updateBackButton();
-    };
   } else {
     backButton.style.display = 'none';
   }
 }
 
-function showStageImage(n) {
-  screenImage.src = `stage${n}.png`;
+function showImage(filename){
+  screenImage.src = filename;
+  stageButtons.style.display = 'none';
   updateBackButton();
 }
 
@@ -175,7 +171,7 @@ function drawGuide(panel) {
   ctx.stroke();
 
   const start = panel.guidePoints[0];
-  ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
+  ctx.fillStyle = '#3ad';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
@@ -217,17 +213,22 @@ function drawLine(panel){
   ctx.stroke();
 }
 
-function drawAllGuides(){
-  panels.forEach(drawGuide);
-}
-
-let activePanel = null;
-let isDrawing = false;
-
 function isAtEnd(point, guidePoints){
   const end = guidePoints[guidePoints.length - 1];
   return (point.x === end.x && point.y === end.y);
 }
+
+function updateStageButtonsVisibility() {
+  const panel3 = panels[2];
+  if(panel3.path.length >= 2 && isAtEnd(panel3.path[panel3.path.length - 1], panel3.guidePoints)){
+    stageButtons.style.display = 'flex';
+  } else {
+    stageButtons.style.display = 'none';
+  }
+}
+
+let activePanel = null;
+let isDrawing = false;
 
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
@@ -245,15 +246,16 @@ panels.forEach(panel => {
     const rect = panel.canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
+
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
 
     drawLine(panel);
-    updateStageButtonsVisibility();
   });
 
   panel.canvas.addEventListener('pointermove', e => {
     if(!isDrawing || activePanel !== panel) return;
+
     const rect = panel.canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -268,15 +270,7 @@ panels.forEach(panel => {
   panel.canvas.addEventListener('pointerup', () => {
     if(!isDrawing || activePanel !== panel) return;
     isDrawing = false;
-    const last = panel.path[panel.path.length - 1];
-    if (isAtEnd(last, panel.guidePoints)) {
-      panel.drawn = true;
-      if (panel.index === 2) {
-        screenImage.src = `panel3.png`;
-        updateStageButtonsVisibility();
-        updateBackButton();
-      }
-    }
+    updateStageButtonsVisibility();
   });
 });
 
