@@ -146,13 +146,35 @@ document.getElementById('toWitnessBtn').addEventListener('click', () => {
   updateReturnButtons();
 });
 
-// 初期化（線描画用）
+function unlockStage(n) {
+  const btn = document.querySelector(`.stage-btn[data-stage="${n}"]`);
+  if (btn) {
+    btn.classList.remove('locked');
+  }
+}
+
+document.getElementById('submitAnswer').addEventListener('click', () => {
+  const input = document.getElementById('answerInput').value.trim().toUpperCase();
+  const currentImg = document.getElementById('screenImage').src;
+
+  if (currentImg.includes('stage1') && input === 'BURGLARY') {
+    unlockStage(2);
+    alert('正解！ステージ2が解放されました。');
+  } else if (currentImg.includes('stage2') && input === 'ALLEY') {
+    unlockStage(3);
+    alert('正解！ステージ3が解放されました。');
+  } else if (currentImg.includes('stage3') && input === 'FETCHING') {
+    alert('正解！全ステージクリア！');
+  } else {
+    alert('不正解');
+  }
+});
+
 const canvasList = document.querySelectorAll('.panel canvas');
 canvasList.forEach((canvas, i) => {
   const ctx = canvas.getContext('2d');
   const panel = canvas.parentElement;
 
-  // サイズ設定
   const resize = () => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
@@ -160,7 +182,6 @@ canvasList.forEach((canvas, i) => {
   };
   window.addEventListener('resize', resize);
 
-  // ガイド描画
   const drawGuide = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (panel.classList.contains('locked-panel')) return;
@@ -182,16 +203,8 @@ canvasList.forEach((canvas, i) => {
     }
     ctx.stroke();
 
-    // スタート地点マーク
     ctx.fillStyle = '#3ad';
     ctx.beginPath();
     ctx.arc(marginX, centerY, 6, 0, Math.PI * 2);
     ctx.fill();
   };
-
-  resize();
-});
-</script>
-
-</body>
-</html>
