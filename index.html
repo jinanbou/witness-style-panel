@@ -31,11 +31,6 @@
     max-height: 100%;
     object-fit: contain;
   }
-  #navButtons {
-    margin-top: 10px;
-    display: none;
-    gap: 10px;
-  }
   #answerBox {
     margin-top: 10px;
     display: none;
@@ -96,11 +91,6 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
-<div id="navButtons">
-  <button id="toWitnessBtn" style="display: none;">Witnessに戻る</button>
-  <button id="toStageBtn" style="display: none;">ステージに戻る</button>
-</div>
-
 <div id="answerBox">
   <input type="text" id="answerInput" placeholder="答えを入力" />
   <button id="submitAnswer">送信</button>
@@ -119,39 +109,7 @@
 </div>
 
 <script>
-const screenImage = document.getElementById('screenImage');
-const nav = document.getElementById('navButtons');
-const toWitness = document.getElementById('toWitnessBtn');
-const toStage = document.getElementById('toStageBtn');
-
-function updateNavButtons() {
-  const src = screenImage.src;
-  if (src.includes('panel')) {
-    nav.style.display = 'flex';
-    toWitness.style.display = 'inline-block';
-    toStage.style.display = 'none';
-  } else if (src.includes('stage')) {
-    nav.style.display = 'flex';
-    toWitness.style.display = 'none';
-    toStage.style.display = 'inline-block';
-  } else {
-    nav.style.display = 'none';
-  }
-}
-
-toWitness.addEventListener('click', () => {
-  screenImage.src = '';
-  document.getElementById('stageButtons').style.display = 'none';
-  updateNavButtons();
-});
-
-toStage.addEventListener('click', () => {
-  screenImage.src = 'panel3.png';
-  document.getElementById('stageButtons').style.display = 'flex';
-  updateNavButtons();
-});
-
-  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
+const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
   const rect = panel.getBoundingClientRect();
@@ -220,7 +178,7 @@ function drawGuide(panel) {
   ctx.stroke();
 
   const start = panel.guidePoints[0];
-  const isActiveOrCompleted = (panel === activePanel && isDrawing) || (panel.drawn);
+  const isActiveOrCompleted = (panel === activePanel && isDrawing) || panel.drawn;
   ctx.fillStyle = isActiveOrCompleted ? '#3ad' : '#fff';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
@@ -228,10 +186,9 @@ function drawGuide(panel) {
 }
 
 function drawLine(panel){
-  const ctx = panel.ctx;
-  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
   drawGuide(panel);
   if(panel.path.length < 2) return;
+  const ctx = panel.ctx;
   ctx.strokeStyle = '#3ad';
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
@@ -275,11 +232,11 @@ panels.forEach(panel => {
       if(p !== panel){
         p.path = [];
         p.drawn = false;
-        drawGuide(p);
       }
     });
     screenImage.src = '';
-    panel.path = [panel.guidePoints[0]];
+    const startPoint = panel.guidePoints[0];
+    panel.path = [startPoint];
     drawLine(panel);
   });
 
@@ -316,7 +273,9 @@ panels.forEach(panel => {
     updatePanelsLock();
     updateAnswerBoxVisibility();
     drawAllGuides();
-    updateNavButtons();
+    panels.forEach(p => {
+      if(p.drawn) drawLine(p);
+    });
   });
 });
 
@@ -339,15 +298,14 @@ document.getElementById('submitAnswer').addEventListener('click', () => {
 document.querySelectorAll('.stage-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const stageNum = btn.getAttribute('data-stage');
-    screenImage.src = `stage${stageNum}.png`;
-    updateNavButtons();
+    document.getElementById('screenImage').src = `stage${stageNum}.png`;
   });
 });
 
 drawAllGuides();
 updatePanelsLock();
 updateAnswerBoxVisibility();
-updateNavButtons();
 </script>
+
 </body>
 </html>
