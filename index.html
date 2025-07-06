@@ -122,22 +122,21 @@ function updateReturnButtons() {
   const toStageBtn = document.getElementById('toStageBtn');
   const panel3Drawn = panelStates[2]?.drawn;
 
+  const isStageImage = img.includes('stage1') || img.includes('stage2') || img.includes('stage3');
+
   if (!img || img.endsWith('/')) {
     returnBtns.style.display = 'none';
     toWitnessBtn.style.display = 'none';
     toStageBtn.style.display = 'none';
+  } else if (panel3Drawn && isStageImage) {
+    returnBtns.style.display = 'flex';
+    toWitnessBtn.style.display = 'none';
+    toStageBtn.style.display = 'block';
   } else if (img.includes('panel')) {
     returnBtns.style.display = 'flex';
-    if (img.includes('panel3') && panel3Drawn && (
-      img.includes('stage1') || img.includes('stage2') || img.includes('stage3'))
-    ) {
-      toWitnessBtn.style.display = 'none';
-      toStageBtn.style.display = 'block';
-    } else {
-      toWitnessBtn.style.display = 'block';
-      toStageBtn.style.display = 'none';
-    }
-  } else if (img.includes('stage')) {
+    toWitnessBtn.style.display = 'block';
+    toStageBtn.style.display = 'none';
+  } else if (isStageImage) {
     returnBtns.style.display = 'flex';
     toWitnessBtn.style.display = 'none';
     toStageBtn.style.display = 'block';
@@ -146,7 +145,7 @@ function updateReturnButtons() {
 
 const panelStates = [{}, {}, {}];
 
-// その他のスクリプト（省略）
+// 他のスクリプト部分は既存のロジックをここに続けてください
 </script>
 
 </body>
