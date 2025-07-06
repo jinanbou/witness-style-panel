@@ -177,9 +177,12 @@ function drawGuide(panel) {
   }
   ctx.stroke();
 
-  // 起点の丸は常に表示（色は描画中だけ水色）
   const start = panel.guidePoints[0];
-  ctx.fillStyle = (panel === activePanel && isDrawing) ? '#3ad' : '#fff';
+  // 起点丸の色を決定
+  // 現在描画中のパネルか、または線を最後まで引き終えたパネルは水色
+  const isActiveOrCompleted = (panel === activePanel && isDrawing) || (panel.drawn);
+  ctx.fillStyle = isActiveOrCompleted ? '#3ad' : '#fff';
+
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
