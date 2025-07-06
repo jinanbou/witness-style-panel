@@ -66,6 +66,7 @@
     touch-action: none;
   }
   #stageButtons {
+    display: none;
     margin-top: 15px;
     gap: 10px;
   }
@@ -101,13 +102,15 @@
   <button class="stage-btn locked" data-stage="3">ステージ3</button>
 </div>
 
-<div class="container">
+<div class="container" id="panelContainer">
   <div class="panel"><canvas></canvas></div>
   <div class="panel locked-panel"><canvas></canvas></div>
   <div class="panel"><canvas></canvas></div>
 </div>
 
 <script>
+const panelContainer = document.getElementById('panelContainer');
+const screenImage = document.getElementById('screenImage');
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -133,13 +136,6 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
 });
 
 let panelAnswersCorrect = [false, false, false];
-let inStageMode = false; // ステージ画像表示中かどうか
-
-const screenImage = document.getElementById('screenImage');
-const answerBox = document.getElementById('answerBox');
-const answerInput = document.getElementById('answerInput');
-const submitAnswer = document.getElementById('submitAnswer');
-const stageButtons = document.querySelectorAll('.stage-btn');
 
 function updatePanelsLock() {
   panels[0].locked = false;
@@ -151,6 +147,7 @@ function updatePanelsLock() {
   } else {
     panels[1].locked = true;
     panels[1].panel.classList.add('locked-panel');
+    panels[1].path = [];
   }
 
   panels[2].locked = false;
@@ -170,8 +167,6 @@ function drawGuide(panel) {
   if (panel.locked) return;
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
   ctx.beginPath();
   const pts = panel.guidePoints;
   ctx.moveTo(pts[0].x, pts[0].y);
@@ -188,14 +183,11 @@ function drawGuide(panel) {
 }
 
 function drawLine(panel){
-  const ctx = panel.ctx;
-  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
   drawGuide(panel);
   if(panel.path.length < 2) return;
+  const ctx = panel.ctx;
   ctx.strokeStyle = '#3ad';
   ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(panel.path[0].x, panel.path[0].y);
   for(let i=1; i<panel.path.length; i++){
@@ -227,32 +219,23 @@ let activePanel = null;
 let isDrawing = false;
 
 panels.forEach(panel => {
-  panel.canvas.addEventListener('pointerup', () => {
-  if(!isDrawing || activePanel !== panel) return;
-  isDrawing = false;
-  const last = panel.path[panel.path.length - 1];
-  if (isAtEnd(last, panel.guidePoints)) {
-    panel.drawn = true;
-    screenImage.src = `panel${panel.index + 1}.png`;
-
-    // パネル3（index=2）に線を引き終えたらステージモードにする
-    if(panel.index === 2){
-      inStageMode = true;
-    } else {
-      inStageMode = false;
-    }
-  } else {
-    panel.path = [];
-    panel.drawn = false;
-    screenImage.src = '';
-    inStageMode = false;
-  }
-  drawLine(panel);
-  updatePanelsLock();
-  updateAnswerBoxVisibility();
-  updateStageButtonsVisibility();
-});
-
+  panel.canvas.addEventListener('pointerdown', e => {
+    if (panel.locked) return;
+    activePanel = panel;
+    isDrawing = true;
+    panels.forEach(p => {
+      if(p !== panel){
+        p.drawn = false;
+        drawGuide(p);
+      }
+    });
+    const rect = panel.canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const startPoint = panel.guidePoints[0];
+    panel.path = [startPoint];
+    drawLine(panel);
+  });
 
   panel.canvas.addEventListener('pointermove', e => {
     if(!isDrawing || activePanel !== panel) return;
@@ -274,133 +257,41 @@ panels.forEach(panel => {
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
       screenImage.src = `panel${panel.index + 1}.png`;
-    } else {
-      panel.path = [];
-      screenImage.src = '';
+      enterWitnessMode();
     }
     drawLine(panel);
     updatePanelsLock();
     updateAnswerBoxVisibility();
-    updateStageButtonsVisibility();
   });
 });
 
 function updateAnswerBoxVisibility() {
-  // 解答欄は「線を引き終えて線が残っているパネル」か「ステージ画像表示中」のとき表示
-  const hasDrawnPanel = panels.some(p => p.drawn);
-  if (hasDrawnPanel || inStageMode) {
-    answerBox.style.display = 'block';
-  } else {
-    answerBox.style.display = 'none';
-  }
+  const visible = panels.some(p => p.drawn);
+  document.getElementById('answerBox').style.display = visible ? 'block' : 'none';
 }
 
-function updateStageButtonsVisibility() {
-  // ステージ画像表示中のみステージボタン表示
-  const stageBtnDiv = document.getElementById('stageButtons');
-  stageBtnDiv.style.display = inStageMode ? 'flex' : 'none';
+document.getElementById('submitAnswer').addEventListener('click', () => {
+  const value = document.getElementById('answerInput').value.trim().toLowerCase();
+  const expectedAnswers = ['visits', 'comment', 'helps'];
+  const activeIndex = panels.findIndex(p => p.drawn && isAtEnd(p.path[p.path.length - 1], p.guidePoints));
+  if (activeIndex !== -1 && expectedAnswers[activeIndex] === value) {
+    alert('正解です！');
+    panelAnswersCorrect[activeIndex] = true;
+    updatePanelsLock();
+  }
+});
 
-  // ステージボタンのロック更新
-  stageButtons.forEach(btn => {
-    const stageNum = btn.getAttribute('data-stage');
-    if (stageNum === "1") {
-      btn.classList.remove('locked');
-    } else if (stageNum === "2") {
-      if (panelAnswersCorrect[0]) btn.classList.remove('locked');
-      else btn.classList.add('locked');
-    } else if (stageNum === "3") {
-      if (panelAnswersCorrect[1]) btn.classList.remove('locked');
-      else btn.classList.add('locked');
-    }
-  });
+function enterStageMode() {
+  panelContainer.style.display = 'none';
 }
 
-stageButtons.forEach(button => {
-  button.addEventListener('click', () => {
-    const stageNum = button.getAttribute('data-stage');
-    const canAccess = (stageNum === "1") || 
-                      (stageNum === "2" && panelAnswersCorrect[0]) || 
-                      (stageNum === "3" && panelAnswersCorrect[1]);
-    if (!canAccess) return;
+function enterWitnessMode() {
+  panelContainer.style.display = 'flex';
+}
 
-    inStageMode = true;
-
-    // ステージ画像を表示
-    screenImage.src = `stage${stageNum}.png`;
-
-    // ステージセレクト非表示（ステージ画像中は非表示）
-    document.getElementById('stageButtons').style.display = 'flex';
-
-    // パネルロックして線は消す
-    panels.forEach(p => {
-      p.path = [];
-      p.drawn = false;
-      drawGuide(p);
-      p.locked = true;
-      p.panel.classList.add('locked-panel');
-    });
-
-    // 解答欄表示
-    answerBox.style.display = 'block';
-
-    updateStageButtonsVisibility();
-  });
-});
-
-submitAnswer.addEventListener('click', () => {
-  const value = answerInput.value.trim().toLowerCase();
-  const expectedAnswers = ['visits', 'comment', 'helps', 'burglary', 'alley', 'fetching'];
-
-  // パネルが線を引かれている場合（witnessシステム）
-  const activePanelIndex = panels.findIndex(p => p.drawn && isAtEnd(p.path[p.path.length - 1], p.guidePoints));
-
-  if (!inStageMode && activePanelIndex !== -1) {
-    // パネル回答
-    if (expectedAnswers[activePanelIndex] === value) {
-      alert('正解です！');
-      panelAnswersCorrect[activePanelIndex] = true;
-      updatePanelsLock();
-    } else {
-      alert('不正解です。');
-    }
-  } else if (inStageMode) {
-    // ステージ回答：stage1->burglary, stage2->alley, stage3->fetching
-    // 画像ファイル名はstage{n}.pngに対応
-    const stageImage = screenImage.src.toLowerCase();
-    if (stageImage.includes('stage1.png') && value === 'burglary' ||
-        stageImage.includes('stage2.png') && value === 'alley' ||
-        stageImage.includes('stage3.png') && value === 'fetching') {
-      alert('ステージクリア！');
-      // ステージクリアでwitnessシステムのパネル3に戻す
-      inStageMode = false;
-      screenImage.src = 'panel3.png';
-
-      // ステージセレクト表示
-      document.getElementById('stageButtons').style.display = 'flex';
-
-      // パネル3のみロック解除、他は条件に応じて更新
-      panels.forEach(p => {
-        p.path = [];
-        p.drawn = false;
-        p.locked = false;
-        p.panel.classList.remove('locked-panel');
-        drawGuide(p);
-      });
-      updatePanelsLock();
-    } else {
-      alert('不正解です。');
-    }
-  }
-  answerInput.value = '';
-  updateAnswerBoxVisibility();
-  updateStageButtonsVisibility();
-});
-
-// 初期描画・状態更新
 drawAllGuides();
 updatePanelsLock();
 updateAnswerBoxVisibility();
-updateStageButtonsVisibility();
 </script>
 
 </body>
