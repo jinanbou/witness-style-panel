@@ -120,7 +120,11 @@ function updateReturnButtons() {
   const toWitnessBtn = document.getElementById('toWitnessBtn');
   const toStageBtn = document.getElementById('toStageBtn');
 
-  if (img.includes('panel')) {
+  if (!img || img.endsWith('/')) {
+    returnBtns.style.display = 'none';
+    toWitnessBtn.style.display = 'none';
+    toStageBtn.style.display = 'none';
+  } else if (img.includes('panel')) {
     returnBtns.style.display = 'flex';
     toWitnessBtn.style.display = 'block';
     toStageBtn.style.display = 'none';
@@ -128,15 +132,16 @@ function updateReturnButtons() {
     returnBtns.style.display = 'flex';
     toWitnessBtn.style.display = 'none';
     toStageBtn.style.display = 'block';
-  } else {
-    returnBtns.style.display = 'none';
-    toWitnessBtn.style.display = 'none';
-    toStageBtn.style.display = 'none';
   }
 }
 
 document.getElementById('toStageBtn').addEventListener('click', () => {
   document.getElementById('screenImage').src = 'panel3.png';
+  updateReturnButtons();
+});
+
+document.getElementById('toWitnessBtn').addEventListener('click', () => {
+  document.getElementById('screenImage').src = '';
   updateReturnButtons();
 });
 </script>
