@@ -113,7 +113,9 @@ const stageButtons = document.getElementById('stageButtons');
 
 function updateStageButtonsVisibility() {
   const panel3 = panels[2];
-  if(panel3.path.length >= 2){
+  const isAtEnd = (pt, guide) => pt?.x === guide[guide.length - 1].x && pt?.y === guide[guide.length - 1].y;
+  const lastPt = panel3.path[panel3.path.length - 1];
+  if(panel3.path.length >= 2 && isAtEnd(lastPt, panel3.guidePoints)) {
     stageButtons.style.display = 'flex';
   } else {
     stageButtons.style.display = 'none';
@@ -135,8 +137,9 @@ function drawGuide(panel) {
   }
   ctx.stroke();
 
+  // スタート地点の丸
   const start = panel.guidePoints[0];
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
@@ -180,7 +183,6 @@ function drawLine(panel){
 
 function drawAllGuides(){
   panels.forEach(drawGuide);
-  updateStageButtonsVisibility(); // 再描画後に表示非表示を再判定
 }
 
 let activePanel = null;
@@ -226,7 +228,7 @@ panels.forEach(panel => {
   panel.canvas.addEventListener('pointerup', () => {
     if(!isDrawing || activePanel !== panel) return;
     isDrawing = false;
-    updateStageButtonsVisibility(); // ← pointerup 時のみ実行
+    updateStageButtonsVisibility();
   });
 });
 
