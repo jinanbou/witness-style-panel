@@ -31,6 +31,17 @@
     max-height: 100%;
     object-fit: contain;
   }
+  #answerBox {
+    margin-top: 10px;
+    display: none;
+  }
+  #answerInput {
+    padding: 5px;
+    font-size: 1em;
+  }
+  #submitAnswer {
+    padding: 5px;
+  }
   .container {
     margin-top: 10px;
     display: flex;
@@ -73,6 +84,11 @@
 
 <div id="screen">
   <img id="screenImage" src="" alt="Selected Image" />
+</div>
+
+<div id="answerBox">
+  <input type="text" id="answerInput" placeholder="答えを入力" />
+  <button id="submitAnswer">送信</button>
 </div>
 
 <div id="stageButtons">
@@ -127,6 +143,11 @@ function updateStageButtonsVisibility() {
   } else {
     stageButtons.style.display = 'none';
   }
+}
+
+function updateAnswerBoxVisibility() {
+  const anyDrawn = panels.some(p => p.drawn && isAtEnd(p.path[p.path.length - 1], p.guidePoints));
+  document.getElementById('answerBox').style.display = anyDrawn ? 'block' : 'none';
 }
 
 function updatePanelsLock() {
@@ -269,11 +290,26 @@ panels.forEach(panel => {
     drawLine(panel);
     updatePanelsLock();
     updateStageButtonsVisibility();
+    updateAnswerBoxVisibility();
   });
+});
+
+document.getElementById('submitAnswer').addEventListener('click', () => {
+  const value = document.getElementById('answerInput').value.trim().toLowerCase();
+  const expectedAnswers = ['visits', 'comment', 'helps'];
+  const activeIndex = panels.findIndex(p => p.drawn && isAtEnd(p.path[p.path.length - 1], p.guidePoints));
+
+  if (expectedAnswers[activeIndex] === value) {
+    alert('正解です！');
+    // ここにクリア後の処理を追加可能
+  } else {
+    alert('不正解です');
+  }
 });
 
 drawAllGuides();
 updatePanelsLock();
+updateAnswerBoxVisibility();
 </script>
 
 </body>
