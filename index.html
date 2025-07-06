@@ -227,25 +227,32 @@ let activePanel = null;
 let isDrawing = false;
 
 panels.forEach(panel => {
-  panel.canvas.addEventListener('pointerdown', e => {
-    if (panel.locked || inStageMode) return;
-    activePanel = panel;
-    isDrawing = true;
-    panels.forEach(p => {
-      if(p !== panel){
-        p.path = [];
-        p.drawn = false;
-        drawGuide(p);
-      }
-    });
+  panel.canvas.addEventListener('pointerup', () => {
+  if(!isDrawing || activePanel !== panel) return;
+  isDrawing = false;
+  const last = panel.path[panel.path.length - 1];
+  if (isAtEnd(last, panel.guidePoints)) {
+    panel.drawn = true;
+    screenImage.src = `panel${panel.index + 1}.png`;
+
+    // パネル3（index=2）に線を引き終えたらステージモードにする
+    if(panel.index === 2){
+      inStageMode = true;
+    } else {
+      inStageMode = false;
+    }
+  } else {
+    panel.path = [];
+    panel.drawn = false;
     screenImage.src = '';
-    const rect = panel.canvas.getBoundingClientRect();
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
-    const startPoint = panel.guidePoints[0];
-    panel.path = [startPoint];
-    drawLine(panel);
-  });
+    inStageMode = false;
+  }
+  drawLine(panel);
+  updatePanelsLock();
+  updateAnswerBoxVisibility();
+  updateStageButtonsVisibility();
+});
+
 
   panel.canvas.addEventListener('pointermove', e => {
     if(!isDrawing || activePanel !== panel) return;
