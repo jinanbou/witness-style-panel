@@ -66,13 +66,13 @@
   }
   #backButton {
     display: none;
-    margin-top: 10px;
+    margin-top: 15px;
     padding: 8px 14px;
-    background: #555;
-    color: white;
+    background: #666;
     border: 1px solid #aaa;
-    border-radius: 5px;
+    color: white;
     cursor: pointer;
+    border-radius: 5px;
   }
 </style>
 </head>
@@ -82,13 +82,13 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
-<button id="backButton">戻る</button>
-
 <div id="stageButtons">
-  <button class="stage-btn" data-stage="1">ステージ1</button>
-  <button class="stage-btn" data-stage="2">ステージ2</button>
-  <button class="stage-btn" data-stage="3">ステージ3</button>
+  <button class="stage-btn">ステージ1</button>
+  <button class="stage-btn">ステージ2</button>
+  <button class="stage-btn">ステージ3</button>
 </div>
+
+<button id="backButton">戻る</button>
 
 <div class="container">
   <div class="panel"><canvas></canvas></div>
@@ -97,10 +97,6 @@
 </div>
 
 <script>
-const screenImage = document.getElementById('screenImage');
-const backButton = document.getElementById('backButton');
-const stageButtons = document.getElementById('stageButtons');
-
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -125,9 +121,13 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
   return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
 });
 
+const stageButtons = document.getElementById('stageButtons');
+const backButton = document.getElementById('backButton');
+const screenImage = document.getElementById('screenImage');
+
 function updateStageButtonsVisibility() {
   const panel3 = panels[2];
-  if (panel3.path.length >= 2 && isAtEnd(panel3.path[panel3.path.length - 1], panel3.guidePoints)) {
+  if(panel3.drawn){
     stageButtons.style.display = 'flex';
   } else {
     stageButtons.style.display = 'none';
@@ -136,26 +136,17 @@ function updateStageButtonsVisibility() {
 
 function updateBackButton() {
   const src = screenImage.src;
-  const fileName = src.substring(src.lastIndexOf('/') + 1).toLowerCase();
-
-  if (fileName.startsWith('panel')) {
-    backButton.style.display = 'block';
+  if(src.endsWith('panel1.png') || src.endsWith('panel2.png') || src.endsWith('panel3.png')) {
+    backButton.style.display = 'inline-block';
     backButton.textContent = 'Witnessに戻る';
-    backButton.onclick = () => {
-      screenImage.src = '';
-      stageButtons.style.display = 'flex';
-    };
-  } else if (fileName.startsWith('stage')) {
-    backButton.style.display = 'block';
+  } else if(src.endsWith('stage1.png') || src.endsWith('stage2.png') || src.endsWith('stage3.png')) {
+    backButton.style.display = 'inline-block';
     backButton.textContent = 'ステージに戻る';
-    backButton.onclick = () => {
-      screenImage.src = 'panel3.png';
-      stageButtons.style.display = 'none';
-    };
   } else {
     backButton.style.display = 'none';
   }
 }
+
 function drawGuide(panel) {
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
@@ -172,7 +163,7 @@ function drawGuide(panel) {
   ctx.stroke();
 
   const start = panel.guidePoints[0];
-  ctx.fillStyle = (isDrawing && activePanel === panel) ? '#3ad' : '#fff';
+  ctx.fillStyle = (activePanel === panel && isDrawing) ? '#3ad' : '#fff';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
@@ -263,34 +254,58 @@ panels.forEach(panel => {
     }
   });
 
-  panel.canvas.addEventListener('pointerup', () => {
+  panel.canvas.addEventListener('pointerup', e => {
     if(!isDrawing || activePanel !== panel) return;
     isDrawing = false;
 
     const last = panel.path[panel.path.length - 1];
-    if (isAtEnd(last, activePanel.guidePoints)) {
-      activePanel.drawn = true;
-      screenImage.src = `panel${activePanel.index + 1}.png`;
+    if(isAtEnd(last, panel.guidePoints)){
+      panel.drawn = true;
+      // 画像はpanelごとのものを表示
+      if(panel.index === 0) {
+        screenImage.src = 'panel1.png';
+      } else if(panel.index === 1) {
+        screenImage.src = 'panel2.png';
+      } else if(panel.index === 2) {
+        screenImage.src = 'panel3.png';
+      }
     } else {
-      activePanel.path = [];
-      drawGuide(activePanel);
+      panel.path = [];
+      panel.drawn = false;
+      drawGuide(panel);
       screenImage.src = '';
     }
-
     updateStageButtonsVisibility();
+    updateBackButton();
   });
 });
 
-// ステージボタン処理
-document.querySelectorAll('.stage-btn').forEach(btn => {
+stageButtons.querySelectorAll('button').forEach((btn, i) => {
   btn.addEventListener('click', () => {
-    const stageNum = btn.dataset.stage;
-    screenImage.src = `stage${stageNum}.png`;
+    if(i === 0) {
+      screenImage.src = 'stage1.png';
+    } else if(i === 1) {
+      screenImage.src = 'stage2.png';
+    } else if(i === 2) {
+      screenImage.src = 'stage3.png';
+    }
+    stageButtons.style.display = 'none';
+    updateBackButton();
   });
 });
 
-// 画像読み込み完了時に戻るボタン切り替え
-screenImage.addEventListener('load', updateBackButton);
+backButton.addEventListener('click', () => {
+  if(backButton.textContent === 'Witnessに戻る') {
+    // 画像消してステージセレクト表示
+    screenImage.src = '';
+    stageButtons.style.display = 'flex';
+  } else if(backButton.textContent === 'ステージに戻る') {
+    // panel3.png を表示してステージセレクト非表示
+    screenImage.src = 'panel3.png';
+    stageButtons.style.display = 'none';
+  }
+  updateBackButton();
+});
 
 // 初期描画
 drawAllGuides();
