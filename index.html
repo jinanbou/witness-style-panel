@@ -145,13 +145,15 @@ function updatePanelsLock() {
   } else {
     panels[1].locked = true;
     panels[1].panel.classList.add('locked-panel');
-    panels[1].path = [];
   }
 
   panels[2].locked = false;
   panels[2].panel.classList.remove('locked-panel');
 
   drawAllGuides();
+  panels.forEach(p => {
+    if(p.drawn) drawLine(p);
+  });
 }
 
 function isAtEnd(point, guidePoints){
@@ -228,10 +230,12 @@ panels.forEach(panel => {
     isDrawing = true;
     panels.forEach(p => {
       if(p !== panel){
+        p.path = [];
         p.drawn = false;
         drawGuide(p);
       }
     });
+    screenImage.src = '';
     const rect = panel.canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
@@ -260,10 +264,16 @@ panels.forEach(panel => {
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
       screenImage.src = `panel${panel.index + 1}.png`;
+    } else {
+      panel.drawn = false;
+      screenImage.src = '';
     }
-    drawLine(panel);
     updatePanelsLock();
     updateAnswerBoxVisibility();
+    drawAllGuides();
+    panels.forEach(p => {
+      if(p.drawn) drawLine(p);
+    });
   });
 });
 
