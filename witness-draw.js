@@ -50,8 +50,6 @@ function drawGuide(panel) {
 }
 
 function drawLine(panel) {
-  if (panel.panel.classList.contains('locked-panel')) return;
-
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
   drawGuide(panel);
@@ -98,15 +96,24 @@ function drawAllGuides() {
 
 drawAllGuides();
 
+const panelImages = [
+  "panel1.png",
+  "panel2.png",
+  "panel3.png"
+];
+
+const imageElement = document.getElementById("panelImage");
+
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
-
     activePanel = panel;
     isDrawing = true;
 
     panels.forEach(p => {
-      if (p !== panel) drawGuide(p);
+      if (p !== panel) {
+        drawGuide(p);
+      }
     });
 
     const rect = panel.canvas.getBoundingClientRect();
@@ -119,7 +126,6 @@ panels.forEach(panel => {
 
   panel.canvas.addEventListener('pointermove', e => {
     if (!isDrawing || activePanel !== panel) return;
-
     const rect = panel.canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -133,36 +139,18 @@ panels.forEach(panel => {
 
   panel.canvas.addEventListener('pointerup', () => {
     if (!isDrawing || activePanel !== panel) return;
-
     isDrawing = false;
+
     const last = panel.path[panel.path.length - 1];
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
       drawLine(panel);
+      imageElement.src = panelImages[panel.index]; // 画像表示
     } else {
       panel.path = [];
       panel.drawn = false;
       drawGuide(panel);
+      imageElement.src = ""; // 線が正しくなければ画像非表示
     }
   });
 });
-
-const panelImages = [
-  "panel1.png",
-  "panel2.png",
-  "panel3.png"
-];
-
-const imageElement = document.getElementById("panelImage");
-
-// inside panel.canvas.addEventListener('pointerup', ...)
-if (isAtEnd(last, panel.guidePoints)) {
-  panel.drawn = true;
-  drawLine(panel);
-  imageElement.src = panelImages[panel.index]; // ★画像表示
-} else {
-  panel.path = [];
-  panel.drawn = false;
-  drawGuide(panel);
-  imageElement.src = ""; // ★画像非表示
-}
