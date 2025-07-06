@@ -163,13 +163,7 @@ function drawGuide(panel) {
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
 
-  if(!panel.unlocked){
-    // ロックされているパネルは真っ黒
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, panel.canvas.width, panel.canvas.height);
-    return;
-  }
-
+  // ロックでも黒くしない、背景は灰色のまま
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
@@ -286,6 +280,16 @@ function resetDrawingOnLockedPanels() {
   });
 }
 
+function updateStageButtonsVisibility() {
+  // ステージセレクトボタンはパネル3に線が最後まで引かれた時のみ表示
+  const panel3 = panels[2];
+  if(panel3.path.length >= 2 && isAtEnd(panel3.path[panel3.path.length-1], panel3.guidePoints)){
+    stageButtons.style.display = 'flex';
+  } else {
+    stageButtons.style.display = 'none';
+  }
+}
+
 function showStage(stageIndex) {
   currentMode = 'stage';
   currentStage = stageIndex;
@@ -315,7 +319,6 @@ stageButtons.querySelectorAll('.stage-btn').forEach(btn => {
 });
 
 function stageCleared(stageIndex) {
-  // ステージクリアは、そのステージの答えを正解したことを指す
   return clearedStages.has(stageIndex);
 }
 
@@ -329,16 +332,16 @@ submitBtn.addEventListener('click', () => {
 
     const correctAnswer = panelAnswers[activePanel.index];
     if(answer === correctAnswer) {
-      if(!activePanel.drawn) return; // 解答受付は線が引かれた状態のみ
+      if(!activePanel.drawn) return; 
       activePanel.drawn = true;
       updatePanelsLock();
       alert('正解です！');
 
-      // 正解で画像を表示
       screenImage.src = panelImages[activePanel.index];
 
       updateAnswerContainerVisibility();
       updateBackButton();
+      updateStageButtonsVisibility();
     } else {
       alert('不正解です');
     }
@@ -348,9 +351,7 @@ submitBtn.addEventListener('click', () => {
     if(answer === correctAnswer) {
       alert('ステージクリア！');
       clearedStages.add(currentStage);
-      // ステージセレクトを表示
       stageButtons.style.display = 'flex';
-      // 画像は変えずに残す
       updateAnswerContainerVisibility();
       updateBackButton();
     } else {
@@ -363,7 +364,6 @@ submitBtn.addEventListener('click', () => {
 
 backButton.addEventListener('click', () => {
   if(backButton.textContent === 'Witnessに戻る') {
-    // 画像消してステージセレクト非表示
     screenImage.src = '';
     stageButtons.style.display = 'none';
     currentMode = 'witness';
@@ -372,8 +372,8 @@ backButton.addEventListener('click', () => {
     updateAnswerContainerVisibility();
     updateBackButton();
     resetDrawingOnLockedPanels();
+    updateStageButtonsVisibility();
   } else if(backButton.textContent === 'ステージに戻る') {
-    // panel3.png を表示してステージセレクト表示
     screenImage.src = 'panel3.png';
     stageButtons.style.display = 'flex';
     currentMode = 'witness';
@@ -382,6 +382,7 @@ backButton.addEventListener('click', () => {
     updateAnswerContainerVisibility();
     updateBackButton();
     resetDrawingOnLockedPanels();
+    updateStageButtonsVisibility();
   }
 });
 
@@ -417,6 +418,7 @@ panels.forEach(panel => {
     panel.path = [startPoint];
     drawLine(panel);
     updateAnswerContainerVisibility();
+    updateStageButtonsVisibility();
   });
 
   panel.canvas.addEventListener('pointermove', e => {
@@ -431,6 +433,7 @@ panels.forEach(panel => {
       panel.path.push(snap);
       drawLine(panel);
       updateAnswerContainerVisibility();
+      updateStageButtonsVisibility();
     }
   });
 
@@ -451,6 +454,7 @@ panels.forEach(panel => {
     updatePanelsLock();
     updateAnswerContainerVisibility();
     updateBackButton();
+    updateStageButtonsVisibility();
   });
 });
 </script>
