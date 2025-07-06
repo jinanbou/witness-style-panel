@@ -180,6 +180,7 @@ function drawLine(panel){
 
 function drawAllGuides(){
   panels.forEach(drawGuide);
+  updateStageButtonsVisibility(); // ← 追加
 }
 
 let activePanel = null;
@@ -227,6 +228,7 @@ panels.forEach(panel => {
   panel.canvas.addEventListener('pointerup', () => {
     if(!isDrawing || activePanel !== panel) return;
     isDrawing = false;
+    updateStageButtonsVisibility(); // ← 追加
   });
 });
 
