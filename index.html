@@ -31,6 +31,11 @@
     max-height: 100%;
     object-fit: contain;
   }
+  #navButtons {
+    margin-top: 10px;
+    display: none;
+    gap: 10px;
+  }
   #answerBox {
     margin-top: 10px;
     display: none;
@@ -91,6 +96,11 @@
   <img id="screenImage" src="" alt="Selected Image" />
 </div>
 
+<div id="navButtons">
+  <button id="toWitnessBtn" style="display: none;">Witnessに戻る</button>
+  <button id="toStageBtn" style="display: none;">ステージに戻る</button>
+</div>
+
 <div id="answerBox">
   <input type="text" id="answerInput" placeholder="答えを入力" />
   <button id="submitAnswer">送信</button>
@@ -109,7 +119,39 @@
 </div>
 
 <script>
-const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
+const screenImage = document.getElementById('screenImage');
+const nav = document.getElementById('navButtons');
+const toWitness = document.getElementById('toWitnessBtn');
+const toStage = document.getElementById('toStageBtn');
+
+function updateNavButtons() {
+  const src = screenImage.src;
+  if (src.includes('panel')) {
+    nav.style.display = 'flex';
+    toWitness.style.display = 'inline-block';
+    toStage.style.display = 'none';
+  } else if (src.includes('stage')) {
+    nav.style.display = 'flex';
+    toWitness.style.display = 'none';
+    toStage.style.display = 'inline-block';
+  } else {
+    nav.style.display = 'none';
+  }
+}
+
+toWitness.addEventListener('click', () => {
+  screenImage.src = '';
+  document.getElementById('stageButtons').style.display = 'none';
+  updateNavButtons();
+});
+
+toStage.addEventListener('click', () => {
+  screenImage.src = 'panel3.png';
+  document.getElementById('stageButtons').style.display = 'flex';
+  updateNavButtons();
+});
+
+  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
   const rect = panel.getBoundingClientRect();
@@ -237,9 +279,7 @@ panels.forEach(panel => {
       }
     });
     screenImage.src = '';
-    const rect = panel.canvas.getBoundingClientRect();
-    const startPoint = panel.guidePoints[0];
-    panel.path = [startPoint];
+    panel.path = [panel.guidePoints[0]];
     drawLine(panel);
   });
 
@@ -276,9 +316,7 @@ panels.forEach(panel => {
     updatePanelsLock();
     updateAnswerBoxVisibility();
     drawAllGuides();
-    panels.forEach(p => {
-      if(p.drawn) drawLine(p);
-    });
+    updateNavButtons();
   });
 });
 
@@ -301,14 +339,15 @@ document.getElementById('submitAnswer').addEventListener('click', () => {
 document.querySelectorAll('.stage-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const stageNum = btn.getAttribute('data-stage');
-    document.getElementById('screenImage').src = `stage${stageNum}.png`;
+    screenImage.src = `stage${stageNum}.png`;
+    updateNavButtons();
   });
 });
 
 drawAllGuides();
 updatePanelsLock();
 updateAnswerBoxVisibility();
+updateNavButtons();
 </script>
-
 </body>
 </html>
