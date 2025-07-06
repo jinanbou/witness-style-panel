@@ -180,7 +180,7 @@ function drawLine(panel){
 
 function drawAllGuides(){
   panels.forEach(drawGuide);
-  updateStageButtonsVisibility(); // ← 追加
+  updateStageButtonsVisibility(); // 再描画後に表示非表示を再判定
 }
 
 let activePanel = null;
@@ -207,7 +207,6 @@ panels.forEach(panel => {
     panel.path = [startPoint];
 
     drawLine(panel);
-    updateStageButtonsVisibility();
   });
 
   panel.canvas.addEventListener('pointermove', e => {
@@ -221,14 +220,13 @@ panels.forEach(panel => {
     if(snap !== last){
       panel.path.push(snap);
       drawLine(panel);
-      updateStageButtonsVisibility();
     }
   });
 
   panel.canvas.addEventListener('pointerup', () => {
     if(!isDrawing || activePanel !== panel) return;
     isDrawing = false;
-    updateStageButtonsVisibility(); // ← 追加
+    updateStageButtonsVisibility(); // ← pointerup 時のみ実行
   });
 });
 
