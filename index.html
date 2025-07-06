@@ -136,16 +136,18 @@ function updateStageButtonsVisibility() {
 
 function updateBackButton() {
   const src = screenImage.src;
-  if (src.includes('panel')) {
+  // ファイル名だけ抽出
+  const fileName = src.substring(src.lastIndexOf('/') + 1).toLowerCase();
+
+  if (fileName.startsWith('panel')) {
     // panel1.png～3.png表示中は「Witnessに戻る」
     backButton.style.display = 'block';
     backButton.textContent = 'Witnessに戻る';
     backButton.onclick = () => {
-      // パネル3の画像表示に戻す
       screenImage.src = 'panel3.png';
       stageButtons.style.display = 'none';
     };
-  } else if (src.includes('stage')) {
+  } else if (fileName.startsWith('stage')) {
     // stage1.png～3.png表示中は「ステージに戻る」
     backButton.style.display = 'block';
     backButton.textContent = 'ステージに戻る';
