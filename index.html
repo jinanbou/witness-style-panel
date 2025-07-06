@@ -77,6 +77,11 @@
     color: white;
     cursor: pointer;
     border-radius: 5px;
+    opacity: 1;
+  }
+  .stage-btn.locked {
+    opacity: 0.3;
+    pointer-events: none;
   }
 </style>
 </head>
@@ -92,9 +97,9 @@
 </div>
 
 <div id="stageButtons">
-  <button class="stage-btn">ステージ1</button>
-  <button class="stage-btn">ステージ2</button>
-  <button class="stage-btn">ステージ3</button>
+  <button class="stage-btn" data-stage="1">ステージ1</button>
+  <button class="stage-btn locked" data-stage="2">ステージ2</button>
+  <button class="stage-btn locked" data-stage="3">ステージ3</button>
 </div>
 
 <div class="container">
@@ -130,6 +135,8 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
 
 const stageButtons = document.getElementById('stageButtons');
 const screenImage = document.getElementById('screenImage');
+const stageBtnElements = document.querySelectorAll('.stage-btn');
+let clearedStages = [false, false, false];
 
 function isAtEnd(point, guidePoints){
   const end = guidePoints[guidePoints.length - 1];
@@ -165,6 +172,11 @@ function updatePanelsLock() {
 
   panels[2].locked = false;
   panels[2].panel.classList.remove('locked-panel');
+}
+
+function updateStageLocks() {
+  stageBtnElements[1].classList.toggle('locked', !clearedStages[0]);
+  stageBtnElements[2].classList.toggle('locked', !clearedStages[1]);
 }
 
 function drawGuide(panel) {
@@ -294,22 +306,39 @@ panels.forEach(panel => {
   });
 });
 
+stageBtnElements.forEach((btn, i) => {
+  btn.addEventListener('click', () => {
+    if (btn.classList.contains('locked')) return;
+    screenImage.src = `stage${i + 1}.png`;
+    document.getElementById('answerBox').style.display = 'block';
+  });
+});
+
 document.getElementById('submitAnswer').addEventListener('click', () => {
   const value = document.getElementById('answerInput').value.trim().toLowerCase();
   const expectedAnswers = ['visits', 'comment', 'helps'];
+  const stageAnswers = ['burglary', 'alley', 'fetching'];
   const activeIndex = panels.findIndex(p => p.drawn && isAtEnd(p.path[p.path.length - 1], p.guidePoints));
+  const imageSrc = screenImage.src;
 
-  if (expectedAnswers[activeIndex] === value) {
+  if (activeIndex !== -1 && expectedAnswers[activeIndex] === value) {
     alert('正解です！');
-    // ここにクリア後の処理を追加可能
   } else {
-    alert('不正解です');
+    for (let i = 0; i < stageAnswers.length; i++) {
+      if (imageSrc.includes(`stage${i + 1}.png`) && value === stageAnswers[i]) {
+        alert('正解です！');
+        clearedStages[i] = true;
+        updateStageLocks();
+        break;
+      }
+    }
   }
 });
 
 drawAllGuides();
 updatePanelsLock();
 updateAnswerBoxVisibility();
+updateStageLocks();
 </script>
 
 </body>
