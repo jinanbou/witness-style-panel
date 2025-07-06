@@ -76,7 +76,6 @@
   }
   .locked-panel {
     background: #000 !important;
-    pointer-events: none;
   }
   canvas {
     position: absolute;
@@ -109,102 +108,170 @@
 </div>
 
 <div class="container">
-  <div class="panel" id="panel1"><canvas></canvas></div>
-  <div class="panel locked-panel" id="panel2"><canvas></canvas></div>
-  <div class="panel" id="panel3"><canvas></canvas></div>
+  <div class="panel" data-index="0"><canvas></canvas></div>
+  <div class="panel locked-panel" data-index="1"><canvas></canvas></div>
+  <div class="panel" data-index="2"><canvas></canvas></div>
 </div>
 
 <script>
-function updateReturnButtons() {
-  const img = document.getElementById('screenImage').src;
-  const returnBtns = document.getElementById('returnButtons');
-  const toWitnessBtn = document.getElementById('toWitnessBtn');
-  const toStageBtn = document.getElementById('toStageBtn');
+  const screenImage = document.getElementById('screenImage');
+  const answerBox = document.getElementById('answerBox');
+  const answerInput = document.getElementById('answerInput');
+  const submitBtn = document.getElementById('submitAnswer');
 
-  if (!img || img.endsWith('/')) {
-    returnBtns.style.display = 'none';
-    toWitnessBtn.style.display = 'none';
-    toStageBtn.style.display = 'none';
-  } else if (img.includes('panel')) {
-    returnBtns.style.display = 'flex';
-    toWitnessBtn.style.display = 'block';
-    toStageBtn.style.display = 'none';
-  } else if (img.includes('stage')) {
-    returnBtns.style.display = 'flex';
-    toWitnessBtn.style.display = 'none';
-    toStageBtn.style.display = 'block';
-  }
-}
-
-document.getElementById('toStageBtn').addEventListener('click', () => {
-  document.getElementById('screenImage').src = 'panel3.png';
-  updateReturnButtons();
-});
-
-document.getElementById('toWitnessBtn').addEventListener('click', () => {
-  document.getElementById('screenImage').src = '';
-  updateReturnButtons();
-});
-
-function unlockStage(n) {
-  const btn = document.querySelector(`.stage-btn[data-stage="${n}"]`);
-  if (btn) {
-    btn.classList.remove('locked');
-  }
-}
-
-document.getElementById('submitAnswer').addEventListener('click', () => {
-  const input = document.getElementById('answerInput').value.trim().toUpperCase();
-  const currentImg = document.getElementById('screenImage').src;
-
-  if (currentImg.includes('stage1') && input === 'BURGLARY') {
-    unlockStage(2);
-    alert('正解！ステージ2が解放されました。');
-  } else if (currentImg.includes('stage2') && input === 'ALLEY') {
-    unlockStage(3);
-    alert('正解！ステージ3が解放されました。');
-  } else if (currentImg.includes('stage3') && input === 'FETCHING') {
-    alert('正解！全ステージクリア！');
-  } else {
-    alert('不正解');
-  }
-});
-
-const canvasList = document.querySelectorAll('.panel canvas');
-canvasList.forEach((canvas, i) => {
-  const ctx = canvas.getContext('2d');
-  const panel = canvas.parentElement;
-
-  const resize = () => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    drawGuide();
-  };
-  window.addEventListener('resize', resize);
-
-  const drawGuide = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (panel.classList.contains('locked-panel')) return;
-
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 6;
+  const panelAnswers = ["VISITS", "COMMENT", "HELPS"];
+  let panelUnlocked = [true, false, true];
+  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
+    const canvas = panel.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
     const marginX = 20;
-    const w = canvas.width - marginX * 2;
-    const h = canvas.height;
-    const amplitude = h / 16;
-    const centerY = h / 2;
+    let w, h;
 
-    ctx.beginPath();
-    for (let x = 0; x <= w; x += w / 50) {
-      const theta = (x / w) * 2 * Math.PI;
-      const y = centerY - amplitude * Math.sin(theta);
-      if (x === 0) ctx.moveTo(x + marginX, y);
-      else ctx.lineTo(x + marginX, y);
+    function resize() {
+      const rect = panel.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      w = canvas.width - marginX * 2;
+      h = canvas.height;
+      updateGuide();
+      draw();
     }
-    ctx.stroke();
 
-    ctx.fillStyle = '#3ad';
-    ctx.beginPath();
-    ctx.arc(marginX, centerY, 6, 0, Math.PI * 2);
-    ctx.fill();
-  };
+    let guidePoints = [];
+    function updateGuide() {
+      guidePoints = [];
+      const amplitude = h / 16;
+      const centerY = h / 2;
+      const step = w / 50;
+      for (let x = 0; x <= w; x += step) {
+        const theta = (x / w) * 2 * Math.PI;
+        const y = centerY - amplitude * Math.sin(theta);
+        guidePoints.push({ x: x + marginX, y });
+      }
+    }
+
+    let path = [];
+    let drawn = false;
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!panelUnlocked[i]) return;
+
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      guidePoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+
+      if (drawn && path.length > 1) {
+        ctx.strokeStyle = '#3ad';
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for (let j = 1; j < path.length; j++) {
+          ctx.lineTo(path[j].x, path[j].y);
+        }
+        ctx.stroke();
+      }
+
+      const start = guidePoints[0];
+      ctx.fillStyle = (isDrawing && activePanelIndex === i) ? '#3ad' : '#3ad';
+      ctx.beginPath();
+      ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    return {
+      panel, canvas, ctx,
+      guidePoints: () => guidePoints,
+      path: () => path,
+      setPath: p => { path = p; draw(); },
+      clearPath: () => { path = []; drawn = false; draw(); },
+      isDrawn: () => drawn,
+      setDrawn: d => { drawn = d; draw(); },
+      draw,
+      index: i,
+      resize
+    };
+  });
+
+  let isDrawing = false;
+  let activePanelIndex = null;
+
+  function snapToGuide(x, y, guidePoints) {
+    return guidePoints.reduce((closest, pt) => {
+      const d1 = (pt.x - x) ** 2 + (pt.y - y) ** 2;
+      const d2 = (closest.x - x) ** 2 + (closest.y - y) ** 2;
+      return d1 < d2 ? pt : closest;
+    });
+  }
+
+  function isAtEnd(point, guidePoints) {
+    const end = guidePoints[guidePoints.length - 1];
+    return (point.x === end.x && point.y === end.y);
+  }
+
+  panels.forEach(p => {
+    const index = p.index;
+    p.canvas.addEventListener('pointerdown', e => {
+      if (!panelUnlocked[index]) return;
+      isDrawing = true;
+      activePanelIndex = index;
+      p.setPath([p.guidePoints()[0]]);
+    });
+
+    p.canvas.addEventListener('pointermove', e => {
+      if (!isDrawing || activePanelIndex !== index) return;
+      const rect = p.canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const snap = snapToGuide(x, y, p.guidePoints());
+      const last = p.path()[p.path().length - 1];
+      if (snap.x !== last.x || snap.y !== last.y) {
+        const newPath = [...p.path(), snap];
+        p.setPath(newPath);
+      }
+    });
+
+    p.canvas.addEventListener('pointerup', () => {
+      if (!isDrawing || activePanelIndex !== index) return;
+      isDrawing = false;
+      const last = p.path()[p.path().length - 1];
+      if (isAtEnd(last, p.guidePoints())) {
+        p.setDrawn(true);
+        screenImage.src = `panel${index + 1}.png`;
+        answerBox.style.display = 'block';
+        answerInput.value = '';
+        answerInput.focus();
+      } else {
+        p.clearPath();
+        screenImage.src = '';
+        answerBox.style.display = 'none';
+      }
+    });
+  });
+
+  submitBtn.addEventListener('click', () => {
+    const input = answerInput.value.trim().toUpperCase();
+    const index = activePanelIndex;
+    if (input === panelAnswers[index]) {
+      alert("正解！");
+      if (index === 0) {
+        panelUnlocked[1] = true;
+        document.querySelectorAll('.panel')[1].classList.remove('locked-panel');
+        panels[1].draw();
+      }
+    } else {
+      alert("不正解！");
+    }
+  });
+</script>
+
+</body>
+</html>
