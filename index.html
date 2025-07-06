@@ -2,118 +2,59 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Witness System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Witness Panel System</title>
   <style>
     body {
-      margin: 0; padding: 0;
+      margin: 0;
       background: #222;
+      color: white;
+      font-family: sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
       height: 100vh;
-      color: white;
       user-select: none;
     }
-    #screen {
-      width: 70vw;
-      height: 50vh;
-      background: #333;
-      margin-top: 20px;
-      border: 3px solid #888;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-    #screen img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-    #answerBox {
-      margin-top: 10px;
-      display: none;
-    }
-    #answerInput {
-      padding: 5px;
-      font-size: 1em;
-    }
-    #submitAnswer {
-      padding: 5px;
-    }
-    #stageButtons, #returnButtons {
-      display: none;
-      margin-top: 15px;
-      gap: 10px;
-    }
-    .stage-btn {
-      padding: 8px 14px;
-      background: #444;
-      border: 1px solid #999;
-      color: white;
-      cursor: pointer;
-      border-radius: 5px;
-      opacity: 1;
-    }
-    .stage-btn.locked {
-      opacity: 0.3;
-      pointer-events: none;
-    }
+
     .container {
-      margin-top: 10px;
       display: flex;
       gap: 20px;
-      width: 70vw;
+      margin-top: 40px;
     }
+
     .panel {
       position: relative;
-      flex: 1 1 0;
-      aspect-ratio: 7 / 1.2;
-      background: #ccc;
+      width: 25vw;
+      aspect-ratio: 4 / 1;
+      background-color: #ccc;
       border: 2px solid #888;
-      user-select: none;
     }
+
     .locked-panel {
-      background: #000 !important;
-      pointer-events: none;
+      background-color: black !important;
     }
+
     canvas {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       touch-action: none;
     }
   </style>
 </head>
 <body>
 
-<div id="screen">
-  <img id="screenImage" src="" alt="Selected Image" />
-</div>
+  <h1>Witness Panels</h1>
 
-<div id="answerBox">
-  <input type="text" id="answerInput" placeholder="答えを入力" />
-  <button id="submitAnswer">送信</button>
-</div>
+  <div class="container">
+    <div class="panel"><canvas></canvas></div>
+    <div class="panel locked-panel"><canvas></canvas></div>
+    <div class="panel"><canvas></canvas></div>
+  </div>
 
-<div id="returnButtons">
-  <button id="toWitnessBtn" class="stage-btn">Witnessに戻る</button>
-  <button id="toStageBtn" class="stage-btn">ステージに戻る</button>
-</div>
-
-<div id="stageButtons">
-  <button class="stage-btn" data-stage="1">ステージ1</button>
-  <button class="stage-btn locked" data-stage="2">ステージ2</button>
-  <button class="stage-btn locked" data-stage="3">ステージ3</button>
-</div>
-
-<div class="container">
-  <div class="panel" id="panel1"><canvas></canvas></div>
-  <div class="panel locked-panel" id="panel2"><canvas></canvas></div>
-  <div class="panel" id="panel3"><canvas></canvas></div>
-</div>
-
-<script src="witness-draw.js"></script>
+  <script src="witness-draw.js"></script>
 </body>
 </html>
