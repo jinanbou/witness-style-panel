@@ -42,6 +42,24 @@
   #submitAnswer {
     padding: 5px;
   }
+  #stageButtons {
+    display: none;
+    margin-top: 15px;
+    gap: 10px;
+  }
+  .stage-btn {
+    padding: 8px 14px;
+    background: #444;
+    border: 1px solid #999;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    opacity: 1;
+  }
+  .stage-btn.locked {
+    opacity: 0.3;
+    pointer-events: none;
+  }
   .container {
     margin-top: 10px;
     display: flex;
@@ -64,24 +82,6 @@
     top: 0; left: 0;
     width: 100%; height: 100%;
     touch-action: none;
-  }
-  #stageButtons {
-    display: none;
-    margin-top: 15px;
-    gap: 10px;
-  }
-  .stage-btn {
-    padding: 8px 14px;
-    background: #444;
-    border: 1px solid #999;
-    color: white;
-    cursor: pointer;
-    border-radius: 5px;
-    opacity: 1;
-  }
-  .stage-btn.locked {
-    opacity: 0.3;
-    pointer-events: none;
   }
 </style>
 </head>
@@ -177,6 +177,7 @@ function drawGuide(panel) {
   }
   ctx.stroke();
 
+  // 起点の丸は常に表示（色は描画中だけ水色）
   const start = panel.guidePoints[0];
   ctx.fillStyle = (panel === activePanel && isDrawing) ? '#3ad' : '#fff';
   ctx.beginPath();
@@ -237,8 +238,6 @@ panels.forEach(panel => {
     });
     screenImage.src = '';
     const rect = panel.canvas.getBoundingClientRect();
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
     drawLine(panel);
@@ -264,9 +263,17 @@ panels.forEach(panel => {
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
       screenImage.src = `panel${panel.index + 1}.png`;
+      // パネル3に線を引き終えたらステージセレクト表示
+      if(panel.index === 2){
+        document.getElementById('stageButtons').style.display = 'flex';
+      }
     } else {
       panel.drawn = false;
       screenImage.src = '';
+      // 線を引き終えなければステージセレクト非表示
+      if(panel.index === 2){
+        document.getElementById('stageButtons').style.display = 'none';
+      }
     }
     updatePanelsLock();
     updateAnswerBoxVisibility();
