@@ -113,11 +113,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawAllGuides() {
-    panels.forEach(panel => {
-      clearCanvas(panel);
-      drawGuide(panel);
-    });
-  }
+  panels.forEach(panel => {
+    clearCanvas(panel);
+    drawGuide(panel);
+    if (panel.drawn && panel.path.length > 1) {
+      drawLine(panel);
+    }
+  });
+}
 
   drawAllGuides();
 
