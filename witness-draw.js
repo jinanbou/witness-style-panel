@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // パネル初期化（canvas設定など）
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
     const canvas = panel.querySelector('canvas');
     const ctx = canvas.getContext('2d');
@@ -75,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     ctx.stroke();
 
-    const start = panel.guidePoints[0];
+    const start = pts[0];
     ctx.fillStyle = (panel.index === lastDrawnPanelIndex) ? '#3ad' : '#fff';
     ctx.beginPath();
     ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
@@ -154,9 +153,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateImage(src) {
     imageElement.src = src || "";
     if (!src) {
-      imageElement.style.display = "none";  // 画像がないなら非表示
+      imageElement.style.display = "none";
     } else {
-      imageElement.style.display = "block"; // 画像があれば表示
+      imageElement.style.display = "block";
     }
   }
 
@@ -176,7 +175,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAnswerArea(stageImages[index]);
   }
 
-  // イベントリスナー設定
   answerButton.addEventListener("click", () => {
     const filename = imageElement.src.split("/").pop();
     const correct = correctAnswers[filename];
@@ -221,8 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const sy = e.clientY - rect.top;
       const startPoint = panel.guidePoints[0];
       const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
-      const threshold = 100;
-      if (distanceSquared > threshold) return;
+      if (distanceSquared > 100) return;
 
       panels.forEach(p => {
         if (p !== panel) {
@@ -294,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.tagName === 'BUTTON') {
       if (e.target.id === "backToPanel3") {
         updateAnswerArea("panel3.png");
-        window.dispatchEvent(new Event("panel3-drawn")); // ステージボタン表示用イベント再発火
+        window.dispatchEvent(new Event("panel3-drawn"));
         return;
       }
       const idx = parseInt(e.target.dataset.index);
@@ -310,8 +307,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   stageUnlocked = [true, false, false];
   updateStageButtonStates();
-
   drawAllGuides();
-
   window.drawAllGuides = drawAllGuides;
+
+  // 🔽 起動時に panel3 を表示
+  updateAnswerArea("panel3.png");
 });
