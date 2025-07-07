@@ -1,55 +1,29 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // パネル初期化（canvas設定など）
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
-    // ...（既存の初期化処理はそのまま）
+    const canvas = panel.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const rect = panel.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    const marginX = 20;
+    const w = canvas.width - marginX * 2;
+    const h = canvas.height;
+    const amplitude = h / 16;
+    const centerY = h / 2;
+
+    const guidePoints = [];
+    const step = w / 50;
+    for (let x = 0; x <= w; x += step) {
+      const theta = (x / w) * 2 * Math.PI;
+      const y = centerY - amplitude * Math.sin(theta);
+      guidePoints.push({ x: x + marginX, y });
+    }
+
+    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
   });
 
-  const imageElement = document.getElementById("panelImage");
-  const answerArea = document.getElementById("answerArea");
-  const answerInput = document.getElementById("answerInput");
-  const answerResult = document.getElementById("answerResult");
-
-  const correctAnswers = {
-    "panel1.png": "visits",
-    "panel2.png": "comment",
-    "panel3.png": "helps",
-    "stage1.png": "burglary",
-    "stage2.png": "alley",
-    "stage3.png": "fetching"
-  };
-
-  function updateImage(src) {
-    imageElement.src = src || "";
-    if (!src) {
-      imageElement.style.display = "none"; // 画像がない場合は非表示
-    } else {
-      imageElement.style.display = "block"; // 画像がある場合は表示
-    }
-  }
-
-  function updateAnswerArea(imageSrc) {
-    updateImage(imageSrc);
-    const filename = imageSrc.split("/").pop();
-    if (correctAnswers[filename]) {
-      answerArea.style.display = "flex";
-      answerInput.value = "";
-      answerResult.textContent = "";
-    } else {
-      answerArea.style.display = "none";
-    }
-  }
-
-  // 例：パネル描画完了時などに画像差し替え
-  panels.forEach(panel => {
-    // ...（イベントリスナー内の一部）
-    // 画像切り替え例
-    // updateAnswerArea(panelImages[panel.index]);
-  });
-
-  // 他の既存ロジックはそのまま
-
-  // 最初は画像なしで非表示にしたい場合
-  updateImage("");
-});
   let activePanel = null;
   let isDrawing = false;
   let lastDrawnPanelIndex = -1;
@@ -58,15 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const stageImages = ["stage1.png", "stage2.png", "stage3.png"];
 
   const imageElement = document.getElementById("panelImage");
-
-function updateImage(src) {
-  imageElement.src = src || "";
-  if (!src) {
-    imageElement.style.display = "none";  // 画像が無いなら非表示
-  } else {
-    imageElement.style.display = "block"; // 画像があれば表示
-  }
-}
   const stageButtons = document.getElementById("stageButtons");
   const answerArea = document.getElementById("answerArea");
   const answerInput = document.getElementById("answerInput");
@@ -96,11 +61,6 @@ function updateImage(src) {
     panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
   }
 
-  function drawGuide(panel) {
-    if (panel.panel.classList.contains('locked-panel')) return;
-    forceDrawGuide(panel);
-  }
-
   function forceDrawGuide(panel) {
     const ctx = panel.ctx;
     ctx.strokeStyle = '#fff';
@@ -120,6 +80,11 @@ function updateImage(src) {
     ctx.beginPath();
     ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
     ctx.fill();
+  }
+
+  function drawGuide(panel) {
+    if (panel.panel.classList.contains('locked-panel')) return;
+    forceDrawGuide(panel);
   }
 
   function drawLine(panel) {
@@ -186,11 +151,17 @@ function updateImage(src) {
     stageButtons.style.display = 'none';
   }
 
-  function showStageImage(index) {
-    updateAnswerArea(imageElement.src);
+  function updateImage(src) {
+    imageElement.src = src || "";
+    if (!src) {
+      imageElement.style.display = "none";  // 画像がないなら非表示
+    } else {
+      imageElement.style.display = "block"; // 画像があれば表示
+    }
   }
 
   function updateAnswerArea(imageSrc) {
+    updateImage(imageSrc);
     const filename = imageSrc.split("/").pop();
     if (correctAnswers[filename]) {
       answerArea.style.display = "flex";
@@ -201,6 +172,11 @@ function updateImage(src) {
     }
   }
 
+  function showStageImage(index) {
+    updateAnswerArea(stageImages[index]);
+  }
+
+  // イベントリスナー設定
   answerButton.addEventListener("click", () => {
     const filename = imageElement.src.split("/").pop();
     const correct = correctAnswers[filename];
@@ -235,8 +211,6 @@ function updateImage(src) {
       answerResult.style.color = "red";
     }
   });
-
-  drawAllGuides();
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
@@ -297,8 +271,7 @@ function updateImage(src) {
           }
         });
 
-        imageElement.src = panelImages[panel.index];
-        updateAnswerArea(imageElement.src);
+        updateAnswerArea(panelImages[panel.index]);
 
         if (panel.index === 2) {
           window.dispatchEvent(new Event("panel3-drawn"));
@@ -310,7 +283,7 @@ function updateImage(src) {
         panel.drawn = false;
         lastDrawnPanelIndex = -1;
         drawAllGuides();
-        imageElement.src = "";
+        updateImage("");
         updateAnswerArea("");
         hideStageButtons();
       }
@@ -320,9 +293,8 @@ function updateImage(src) {
   stageButtons.addEventListener('click', e => {
     if (e.target.tagName === 'BUTTON') {
       if (e.target.id === "backToPanel3") {
-        imageElement.src = "panel3.png";
-        updateAnswerArea(imageElement.src);
-        window.dispatchEvent(new Event("panel3-drawn")); // ★ イベント再発火でステージボタン表示
+        updateAnswerArea("panel3.png");
+        window.dispatchEvent(new Event("panel3-drawn")); // ステージボタン表示用イベント再発火
         return;
       }
       const idx = parseInt(e.target.dataset.index);
@@ -338,6 +310,8 @@ function updateImage(src) {
 
   stageUnlocked = [true, false, false];
   updateStageButtonStates();
+
+  drawAllGuides();
 
   window.drawAllGuides = drawAllGuides;
 });
