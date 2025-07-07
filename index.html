@@ -220,7 +220,7 @@
     let isDrawing = false;
     let lastDrawnPanelIndex = -1;
 
-    let stageUnlocked = [false, false, true]; // panel3のみ最初からアンロック
+    let stageUnlocked = [true, false, false]; // stage3のみ最初からアンロック
 
     function updateStageButtonStates() {
       const buttons = stageButtons.querySelectorAll('button[data-index]');
