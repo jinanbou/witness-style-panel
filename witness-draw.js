@@ -104,7 +104,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return closest;
   }
 
-  // 座標の等価判定関数
   function pointsEqual(p1, p2) {
     return p1.x === p2.x && p1.y === p2.y;
   }
@@ -152,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (distanceSquared > threshold) return;
 
-      // 他パネルのリセット
+      // 他パネルの線をリセット
       panels.forEach(p => {
         if (p !== panel) {
           p.drawn = false;
