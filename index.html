@@ -1,161 +1,102 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    const marginX = 20;
-    const w = canvas.width - marginX * 2;
-    const h = canvas.height;
-    const amplitude = h / 16;
-    const centerY = h / 2;
-
-    const guidePoints = [];
-    const step = w / 50;
-    for (let x = 0; x <= w; x += step) {
-      const theta = (x / w) * 2 * Math.PI;
-      const y = centerY - amplitude * Math.sin(theta);
-      guidePoints.push({ x: x + marginX, y });
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Witness Panel System</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      user-select: none;
     }
-
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
-  });
-
-  let activePanel = null;
-  let isDrawing = false;
-
-  const panelImages = [
-    "panel1.png",
-    "panel2.png",
-    "panel3.png"
-  ];
-
-  const imageElement = document.getElementById("panelImage");
-
-  function drawGuide(panel) {
-    const ctx = panel.ctx;
-    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    if (panel.panel.classList.contains('locked-panel')) return;
-
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    const pts = panel.guidePoints;
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) {
-      ctx.lineTo(pts[i].x, pts[i].y);
+    #image-viewer {
+      margin-top: 20px;
+      width: 70vw;
+      height: 40vh;
+      background: #333;
+      border: 3px solid #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    ctx.stroke();
-
-    const start = panel.guidePoints[0];
-    const last = panel.path[panel.path.length - 1];
-    const reachedEnd = isAtEnd(last || {}, panel.guidePoints);
-    ctx.fillStyle = (reachedEnd || (isDrawing && activePanel === panel)) ? '#3ad' : '#fff';
-    ctx.beginPath();
-    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-
-  function drawLine(panel) {
-    const ctx = panel.ctx;
-    ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-    drawGuide(panel);
-    if (panel.path.length < 2) return;
-    ctx.strokeStyle = '#3ad';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(panel.path[0].x, panel.path[0].y);
-    for (let i = 1; i < panel.path.length; i++) {
-      ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    #image-viewer img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
-    ctx.stroke();
-  }
-
-  function dist2(a, b) {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return dx * dx + dy * dy;
-  }
-
-  function snapToGuide(x, y, guidePoints) {
-    let minDist = Infinity;
-    let closest = guidePoints[0];
-    for (const pt of guidePoints) {
-      const d = dist2(pt, { x, y });
-      if (d < minDist) {
-        minDist = d;
-        closest = pt;
-      }
+    #stageButtons {
+      display: none;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
-    return closest;
-  }
+    #stageButtons button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #stageButtons button:hover {
+      background-color: #666;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .panel {
+      position: relative;
+      width: 25vw;
+      aspect-ratio: 4 / 1;
+      background-color: #ccc;
+      border: 2px solid #888;
+    }
+    .locked-panel {
+      background-color: black !important;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
 
-  function isAtEnd(point, guidePoints) {
-    const end = guidePoints[guidePoints.length - 1];
-    return point.x === end.x && point.y === end.y;
-  }
+  <h1>Witness Panels</h1>
 
-  function drawAllGuides() {
-    panels.forEach(drawGuide);
-  }
+  <div id="image-viewer">
+    <img id="panelImage" src="" alt="Panel image" />
+  </div>
 
-  drawAllGuides();
+  <div id="stageButtons">
+    <button data-index="0">ステージ1</button>
+    <button data-index="1">ステージ2</button>
+    <button data-index="2">ステージ3</button>
+    <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
+  </div>
 
-  // パネルの描画操作イベント
-  panels.forEach(panel => {
-    panel.canvas.addEventListener('pointerdown', e => {
-      if (panel.panel.classList.contains('locked-panel')) return;
-      activePanel = panel;
-      isDrawing = true;
+  <div class="container">
+    <div class="panel"><canvas></canvas></div>
+    <div class="panel locked-panel"><canvas></canvas></div>
+    <div class="panel"><canvas></canvas></div>
+  </div>
 
-      panels.forEach(p => {
-        if (p !== panel) {
-          drawGuide(p);
-        }
-      });
-
-      const startPoint = panel.guidePoints[0];
-      panel.path = [startPoint];
-      drawLine(panel);
-    });
-
-    panel.canvas.addEventListener('pointermove', e => {
-      if (!isDrawing || activePanel !== panel) return;
-      const rect = panel.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const snap = snapToGuide(mx, my, panel.guidePoints);
-      const last = panel.path[panel.path.length - 1];
-      if (snap !== last) {
-        panel.path.push(snap);
-        drawLine(panel);
-      }
-    });
-
-    panel.canvas.addEventListener('pointerup', () => {
-      if (!isDrawing || activePanel !== panel) return;
-      isDrawing = false;
-      const last = panel.path[panel.path.length - 1];
-      if (isAtEnd(last, panel.guidePoints)) {
-        panel.drawn = true;
-        drawLine(panel);
-        imageElement.src = panelImages[panel.index];
-        if (panel.index === 2) {
-          console.log("panel3 drawn event fired");
-          window.dispatchEvent(new Event("panel3-drawn"));
-        }
-      } else {
-        panel.path = [];
-        panel.drawn = false;
-        drawGuide(panel);
-        imageElement.src = "";
-      }
-    });
-  });
-});
+  <script src="witness-draw.js"></script>
+  <script src="stage-controller.js"></script>
+</body>
+</html>
