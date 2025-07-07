@@ -1,3 +1,193 @@
+// witness-draw.js
+export class WitnessDraw {
+  constructor(panels, options) {
+    // panels: [ { panel: DOM, canvas: DOM, ctx, guidePoints, ... }, ... ]
+    this.panels = panels;
+    this.activePanel = null;
+    this.isDrawing = false;
+    this.lastDrawnPanelIndex = -1;
+    this.options = options || {};
+
+    this.init();
+  }
+
+  init() {
+    this.panels.forEach(panel => {
+      panel.canvas.addEventListener("pointerdown", e => this.onPointerDown(e, panel));
+      panel.canvas.addEventListener("pointermove", e => this.onPointerMove(e, panel));
+      panel.canvas.addEventListener("pointerup", e => this.onPointerUp(e, panel));
+    });
+
+    this.drawAllGuides();
+  }
+
+  dist2(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return dx * dx + dy * dy;
+  }
+
+  pointsEqual(p1, p2) {
+    return p1.x === p2.x && p1.y === p2.y;
+  }
+
+  snapToGuide(x, y, guidePoints) {
+    let minDist = Infinity;
+    let closest = guidePoints[0];
+    for (const pt of guidePoints) {
+      const d = this.dist2(pt, { x, y });
+      if (d < minDist) {
+        minDist = d;
+        closest = pt;
+      }
+    }
+    return closest;
+  }
+
+  isAtEnd(point, guidePoints) {
+    const end = guidePoints[guidePoints.length - 1];
+    return point.x === end.x && point.y === end.y;
+  }
+
+  clearCanvas(panel) {
+    panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
+  }
+
+  forceDrawGuide(panel) {
+    if (panel.panel.style.display === "none") return;
+    const ctx = panel.ctx;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const pts = panel.guidePoints;
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
+
+    // 始点の青丸（最後に描いたパネルなら青、それ以外は白）
+    const start = pts[0];
+    ctx.fillStyle = (panel.index === this.lastDrawnPanelIndex) ? '#3ad' : '#fff';
+    ctx.beginPath();
+    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  drawGuide(panel) {
+    if (panel.panel.style.display === "none") return;
+    this.forceDrawGuide(panel);
+  }
+
+  drawLine(panel) {
+    if (panel.panel.style.display === "none") return;
+    if (panel.path.length < 2) return;
+    const ctx = panel.ctx;
+    this.clearCanvas(panel);
+    this.drawGuide(panel);
+    ctx.strokeStyle = '#3ad';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(panel.path[0].x, panel.path[0].y);
+    for (let i = 1; i < panel.path.length; i++) {
+      ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    }
+    ctx.stroke();
+  }
+
+  drawAllGuides() {
+    this.panels.forEach(panel => {
+      if (panel.panel.style.display === "none") return;
+      this.clearCanvas(panel);
+      this.drawGuide(panel);
+      if (panel.drawn && panel.path.length > 1) {
+        this.drawLine(panel);
+      }
+    });
+  }
+
+  onPointerDown(e, panel) {
+    if (panel.panel.style.display === "none") return;
+    if (panel.panel.classList.contains('locked-panel')) return;
+
+    const rect = panel.canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const startPoint = panel.guidePoints[0];
+    const distanceSquared = this.dist2({ x: sx, y: sy }, startPoint);
+    if (distanceSquared > 100) return;
+
+    // 他パネルの描画リセット
+    this.panels.forEach(p => {
+      if (p !== panel) {
+        p.drawn = false;
+        p.path = [];
+        this.clearCanvas(p);
+        this.drawGuide(p);
+      }
+    });
+
+    this.activePanel = panel;
+    this.isDrawing = true;
+    this.lastDrawnPanelIndex = panel.index;
+    this.drawAllGuides();
+
+    panel.path = [startPoint];
+    this.drawLine(panel);
+  }
+
+  onPointerMove(e, panel) {
+    if (!this.isDrawing || this.activePanel !== panel) return;
+    if (panel.panel.style.display === "none") return;
+    if (panel.panel.classList.contains('locked-panel')) return;
+
+    const rect = panel.canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const snap = this.snapToGuide(mx, my, panel.guidePoints);
+    const last = panel.path[panel.path.length - 1];
+    if (!this.pointsEqual(snap, last)) {
+      panel.path.push(snap);
+      this.drawLine(panel);
+    }
+  }
+
+  onPointerUp(e, panel) {
+    if (!this.isDrawing || this.activePanel !== panel) return;
+    if (panel.panel.style.display === "none") return;
+    if (panel.panel.classList.contains('locked-panel')) return;
+
+    this.isDrawing = false;
+    const last = panel.path[panel.path.length - 1];
+    if (this.isAtEnd(last, panel.guidePoints)) {
+      panel.drawn = true;
+      this.lastDrawnPanelIndex = panel.index;
+      this.drawLine(panel);
+
+      this.panels.forEach(p => {
+        if (p !== panel) {
+          this.clearCanvas(p);
+          this.drawGuide(p);
+        }
+      });
+
+      // panel3描画完了イベント発火
+      if (panel.index === 2) {
+        window.dispatchEvent(new Event("panel3-drawn"));
+      }
+    } else {
+      // 最後まで引けなければリセット
+      panel.path = [];
+      panel.drawn = false;
+      this.lastDrawnPanelIndex = -1;
+      this.drawAllGuides();
+    }
+  }
+}
 document.addEventListener("DOMContentLoaded", () => {
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
     const canvas = panel.querySelector('canvas');
