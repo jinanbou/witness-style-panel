@@ -70,23 +70,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawLine(panel) {
-  // clearCanvas(panel);  ← 削除
-  // drawGuide(panel);    ← 削除
+    if (panel.path.length < 2) return;
 
-  if (panel.path.length < 2) return;
-
-  const ctx = panel.ctx;
-  ctx.strokeStyle = '#3ad';
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(panel.path[0].x, panel.path[0].y);
-  for (let i = 1; i < panel.path.length; i++) {
-    ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    const ctx = panel.ctx;
+    ctx.strokeStyle = '#3ad';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(panel.path[0].x, panel.path[0].y);
+    for (let i = 1; i < panel.path.length; i++) {
+      ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    }
+    ctx.stroke();
   }
-  ctx.stroke();
-}
 
   function dist2(a, b) {
     const dx = a.x - b.x;
@@ -107,20 +104,25 @@ document.addEventListener("DOMContentLoaded", () => {
     return closest;
   }
 
+  // 追加：座標の等価判定関数
+  function pointsEqual(p1, p2) {
+    return p1.x === p2.x && p1.y === p2.y;
+  }
+
   function isAtEnd(point, guidePoints) {
     const end = guidePoints[guidePoints.length - 1];
     return point.x === end.x && point.y === end.y;
   }
 
   function drawAllGuides() {
-  panels.forEach(panel => {
-    clearCanvas(panel);
-    drawGuide(panel);
-    if (panel.drawn && panel.path.length > 1) {
-      drawLine(panel);
-    }
-  });
-}
+    panels.forEach(panel => {
+      clearCanvas(panel);
+      drawGuide(panel);
+      if (panel.drawn && panel.path.length > 1) {
+        drawLine(panel);
+      }
+    });
+  }
 
   drawAllGuides();
 
@@ -146,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const startPoint = panel.guidePoints[0];
 
       const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
-      const threshold = 100; // 10px以内
+      const threshold = 100; // 半径10px以内
 
       if (distanceSquared > threshold) return;
 
@@ -166,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const my = e.clientY - rect.top;
       const snap = snapToGuide(mx, my, panel.guidePoints);
       const last = panel.path[panel.path.length - 1];
-      if (snap !== last) {
+      if (!pointsEqual(snap, last)) {
         panel.path.push(snap);
         drawLine(panel);
       }
