@@ -41,7 +41,14 @@ const stageImages = [
 
 const imageElement = document.getElementById("panelImage");
 const stageButtons = document.getElementById("stageButtons");
-const backToSelectBtn = document.getElementById("backToSelect"); // 「ステージセレクトに戻る」ボタン
+const backToSelectBtn = document.getElementById("backToPanel3"); // ←ここ注意！
+
+backToSelectBtn.addEventListener("click", () => {
+  // 「ステージセレクトに戻る」ボタン押下時はパネル3画像を再表示し、
+  // ステージボタンは非表示にする
+  imageElement.src = panelImages[2];  // パネル3の画像
+  hideStageButtons();
+});
 
 function drawGuide(panel) {
   const ctx = panel.ctx;
@@ -194,12 +201,6 @@ stageButtons.addEventListener('click', e => {
     }
   }
 });
-
-// 「ステージセレクトに戻る」ボタンのクリック処理
-backToSelectBtn.addEventListener('click', () => {
-  imageElement.src = panelImages[2]; // panel3画像に戻す
-});
-
 
 // パネル3描画完了時イベントリスナー（ボタン表示）
 window.addEventListener("panel3-drawn", () => {
