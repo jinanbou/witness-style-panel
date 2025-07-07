@@ -312,4 +312,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 🔽 起動時に panel3 を表示
   updateAnswerArea("panel3.png");
+  showStageButtons();
 });
