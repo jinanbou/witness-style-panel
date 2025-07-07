@@ -44,8 +44,10 @@ const stageButtons = document.getElementById("stageButtons");
 const backToPanel3Btn = document.getElementById("backToPanel3");
 
 backToPanel3Btn.addEventListener("click", () => {
-  imageElement.src = panelImages[2];  // パネル3の画像
-  // ステージボタンは消さない（hideStageButtonsは呼ばない）
+  // パネル3の画像を表示しつつ、ステージ選択ボタンは非表示にしない
+  imageElement.src = panelImages[2];
+  // ここでステージボタンは消さずに残します
+  // 何もしない（hideStageButtons呼ばない）
 });
 
 function drawGuide(panel) {
@@ -133,7 +135,6 @@ function showStageImage(index) {
   imageElement.src = stageImages[index];
 }
 
-// パネル描画完了時の処理
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
@@ -190,7 +191,6 @@ panels.forEach(panel => {
   });
 });
 
-// ステージボタンのクリック処理（stage1~3画像表示）
 stageButtons.addEventListener('click', e => {
   if (e.target.tagName === 'BUTTON' && e.target !== backToPanel3Btn) {
     const idx = parseInt(e.target.dataset.index);
@@ -200,7 +200,6 @@ stageButtons.addEventListener('click', e => {
   }
 });
 
-// パネル3描画完了時イベントリスナー（ボタン表示）
 window.addEventListener("panel3-drawn", () => {
   console.log("panel3-drawn event caught");
   showStageButtons();
