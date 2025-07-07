@@ -1,5 +1,6 @@
 const stageButtons = document.getElementById("stageButtons");
 const imageElement = document.getElementById("panelImage");
+const backToPanel3Btn = document.getElementById("backToPanel3");
 
 const stageImages = [
   "stage1.png",
@@ -7,32 +8,35 @@ const stageImages = [
   "stage3.png"
 ];
 
-// ステージ選択ボタンの表示
 function showStageButtons() {
   stageButtons.style.display = "flex";
 }
 
-// ステージ選択ボタンの非表示
 function hideStageButtons() {
   stageButtons.style.display = "none";
 }
 
-// ステージ画像の表示
 function showStageImage(index) {
   imageElement.src = stageImages[index];
 }
 
-// パネル3完了通知を受け取り、ボタンを表示
 window.addEventListener("panel3-drawn", () => {
+  console.log("panel3-drawn event caught");
   showStageButtons();
 });
 
-// ステージ選択ボタンのクリック処理
 stageButtons.addEventListener("click", (e) => {
   if (e.target.tagName === "BUTTON") {
-    const idx = parseInt(e.target.dataset.index);
-    if (!isNaN(idx)) {
-      showStageImage(idx);
+    if (e.target === backToPanel3Btn) {
+      // 「ステージセレクトに戻る」ボタン押下時
+      imageElement.src = "panel3.png"; // パネル3画像に戻す
+      // ボタンは消さずに表示し続ける
+    } else {
+      // ステージ1~3ボタン押下時
+      const idx = parseInt(e.target.dataset.index);
+      if (!isNaN(idx)) {
+        showStageImage(idx);
+      }
     }
   }
 });
