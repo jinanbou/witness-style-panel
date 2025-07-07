@@ -33,7 +33,7 @@
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
-      /* ↓ display: none は削除。JSが制御します */
+      display: none;
     }
     #stageButtons {
       display: none;
@@ -145,35 +145,28 @@
   </style>
 </head>
 <body>
-
   <h1>atgt2025sv</h1>
-
   <div id="image-viewer">
-    <!-- ✅ altを空にして"Panel image"を非表示 -->
     <img id="panelImage" src="" alt="" />
   </div>
-
   <div id="stageButtons">
     <button data-index="0">ステージ1</button>
     <button data-index="1">ステージ2</button>
     <button data-index="2">ステージ3</button>
     <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
   </div>
-
   <div id="answerArea">
     <input type="text" id="answerInput" placeholder="解答を入力..." />
     <button id="answerButton">解答する</button>
     <p id="answerResult"></p>
   </div>
-
   <div class="container">
     <div class="panel"><canvas></canvas></div>
     <div class="panel locked-panel"><canvas></canvas></div>
     <div class="panel"><canvas></canvas></div>
   </div>
-
   <script src="witness-draw.js"></script>
+  <script src="main.js"></script>
   <div id="pageMemo">210970</div>
-
 </body>
 </html>
