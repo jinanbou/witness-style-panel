@@ -1,10 +1,12 @@
+// stage-controller.js
 export class StageController {
   constructor(options) {
-    this.panelImages = options.panelImages;
-    this.stageImages = options.stageImages;
-    this.correctAnswers = options.correctAnswers;
+    this.panelImages = options.panelImages; // ["images/panel1.png", ...]
+    this.stageImages = options.stageImages; // ["images/stage1.png", ...]
+    this.correctAnswers = options.correctAnswers; // { "panel3.png":"helps", ... }
 
-    this.stageUnlocked = [false, false, true]; // panel3だけ最初に開放
+    this.stageUnlocked = [false, false, true]; // panel3のみ最初からアンロック
+
     this.stageButtons = document.getElementById("stageButtons");
     this.answerArea = document.getElementById("answerArea");
     this.answerInput = document.getElementById("answerInput");
@@ -12,15 +14,22 @@ export class StageController {
     this.answerResult = document.getElementById("answerResult");
     this.backToPanel3Btn = document.getElementById("backToPanel3");
     this.imageElement = document.getElementById("panelImage");
-    this.panelContainer = document.querySelector(".container");
+
+    // 🔽 パネル要素を取得
+    this.panels = Array.from(document.querySelectorAll('.panel'));
 
     this.init();
   }
 
   init() {
+    // 🔽 最初はパネルを非表示
+    this.panels.forEach(panel => {
+      panel.style.display = "none";
+    });
+
     this.updateStageButtonStates();
     this.bindEvents();
-    this.showPanel3State(); // 起動時にpanel3へ
+    this.showPanel3State();
   }
 
   bindEvents() {
@@ -80,12 +89,19 @@ export class StageController {
   }
 
   handleCorrectAnswer(filename) {
+    // panel3 正解 → パネル表示＋stage1,2 解放
     if (filename === "panel3.png") {
       this.stageUnlocked[0] = true;
       this.stageUnlocked[1] = true;
       this.updateStageButtonStates();
-      this.panelContainer.style.display = "flex"; // パネル表示
+
+      // 🔽 パネルを表示
+      this.panels.forEach(panel => {
+        panel.style.display = "block";
+      });
     }
+
+    // パネル/ステージ正解に応じた解除処理（拡張用）
     if (filename === "panel1.png") {
       this.stageUnlocked[0] = true;
     }
@@ -104,7 +120,6 @@ export class StageController {
 
   showPanel3State() {
     this.imageElement.src = this.panelImages[2];
-    this.imageElement.style.display = "block"; // ← ここを追加
     this.answerArea.style.display = "flex";
     this.answerInput.value = "";
     this.answerResult.textContent = "";
@@ -113,7 +128,6 @@ export class StageController {
 
   showStage(idx) {
     this.imageElement.src = this.stageImages[idx];
-    this.imageElement.style.display = "block"; // ← ここも追加
     this.answerArea.style.display = "flex";
     this.answerInput.value = "";
     this.answerResult.textContent = "";
