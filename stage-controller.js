@@ -1,9 +1,10 @@
-// stage-controller.js
+import { resizeAndRedrawPanels } from './witness-draw.js';
+
 export class StageController {
   constructor(options) {
     this.panelImages = options.panelImages; // ["images/panel1.png", ...]
     this.stageImages = options.stageImages; // ["images/stage1.png", ...]
-    this.correctAnswers = options.correctAnswers; // { "panel3.png":"helps", ... }
+    this.correctAnswers = options.correctAnswers; // { "panel3.png": "helps", ... }
 
     this.stageUnlocked = [false, false, true]; // panel3のみ最初からアンロック
 
@@ -15,18 +16,16 @@ export class StageController {
     this.backToPanel3Btn = document.getElementById("backToPanel3");
     this.imageElement = document.getElementById("panelImage");
 
-    // ⬇ パネル要素を取得
     this.panels = Array.from(document.querySelectorAll('.panel'));
 
     this.init();
   }
 
   init() {
-    // ⬇ 最初はパネルを非表示
+    // パネルは初期非表示
     this.panels.forEach(panel => {
       panel.style.display = "none";
     });
-    document.querySelector('.container').style.display = "none";
 
     this.updateStageButtonStates();
     this.bindEvents();
@@ -96,16 +95,16 @@ export class StageController {
       this.stageUnlocked[1] = true;
       this.updateStageButtonStates();
 
-      // ⬇ パネルを表示
+      // パネル表示
       this.panels.forEach(panel => {
         panel.style.display = "block";
       });
 
-      // ⬇ containerを表示
-      document.querySelector('.container').style.display = "flex";
+      // 一呼吸置いてリサイズ・描画
+      resizeAndRedrawPanels();
     }
 
-    // パネル/ステージ正解に応じた解除処理
+    // 拡張用ロック解除
     if (filename === "panel1.png") {
       this.stageUnlocked[0] = true;
     }
