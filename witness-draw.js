@@ -172,6 +172,8 @@ panels.forEach(panel => {
       if (panel.index === 2) {
         console.log("panel3 drawn event fired");
         window.dispatchEvent(new Event("panel3-drawn"));
+      } else {
+        hideStageButtons();
       }
     } else {
       panel.path = [];
