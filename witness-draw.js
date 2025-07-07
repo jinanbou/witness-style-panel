@@ -1,3 +1,5 @@
+// witness-draw.js
+
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -42,10 +44,8 @@ const stageButtons = document.getElementById("stageButtons");
 const backToPanel3Btn = document.getElementById("backToPanel3");
 
 backToPanel3Btn.addEventListener("click", () => {
-  // 「ステージセレクトに戻る」ボタン押下時はパネル3画像を再表示し、
-  // ステージボタンは非表示にする
   imageElement.src = panelImages[2];  // パネル3の画像
-  hideStageButtons();
+  // ステージボタンは消さない（hideStageButtonsは呼ばない）
 });
 
 function drawGuide(panel) {
@@ -191,12 +191,8 @@ panels.forEach(panel => {
 });
 
 // ステージボタンのクリック処理（stage1~3画像表示）
-// 「ステージセレクトに戻る」ボタンは除外して判定
 stageButtons.addEventListener('click', e => {
-  if (
-    e.target.tagName === 'BUTTON' &&
-    e.target.id !== 'backToPanel3'  // ←ここでidで判定
-  ) {
+  if (e.target.tagName === 'BUTTON' && e.target !== backToPanel3Btn) {
     const idx = parseInt(e.target.dataset.index);
     if (!isNaN(idx)) {
       showStageImage(idx);
