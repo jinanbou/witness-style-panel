@@ -73,7 +73,6 @@
       background-color: #ccc;
       border: 2px solid #888;
       margin-bottom: 40px;
-      /* 初期は非表示 */
       display: none;
     }
     .locked-panel {
@@ -197,8 +196,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let isDrawing = false;
   let lastDrawnPanelIndex = -1;
 
-  const panelImages = ["panel1.png", "panel2.png", "panel3.png"];
-  const stageImages = ["stage1.png", "stage2.png", "stage3.png"];
+  // ここを images フォルダにある想定でパス修正しました
+  const panelImages = ["images/panel1.png", "images/panel2.png", "images/panel3.png"];
+  const stageImages = ["images/stage1.png", "images/stage2.png", "images/stage3.png"];
 
   const imageElement = document.getElementById("panelImage");
   const stageButtons = document.getElementById("stageButtons");
@@ -345,29 +345,35 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAnswerArea(stageImages[index]);
   }
 
-  // 起動時はパネル全部非表示（CSSのdisplay:noneにしてるので念のため）
+  // 初期状態はパネル全部非表示（CSSで display:none）
   panels.forEach(p => {
     p.panel.style.display = "none";
   });
 
-  // 起動時に panel3 の画像と解答欄を表示
-  updateAnswerArea("panel3.png");
+  // 初期は panel3 の画像と解答欄を表示
+  updateAnswerArea("images/panel3.png");
 
-  // 起動時にステージ選択ボタンを表示
+  // ステージ選択ボタンを表示
   showStageButtons();
 
   updateStageButtonStates();
   drawAllGuides();
 
+  // 解答ボタン押下イベント
   answerButton.addEventListener("click", () => {
     const filename = imageElement.src.split("/").pop();
     const correct = correctAnswers[filename];
     const userAnswer = answerInput.value.trim().toLowerCase();
 
+    console.log("解答ボタン押下");
+    console.log("現在の画像:", filename);
+    console.log("正解:", correct);
+    console.log("ユーザー入力:", userAnswer);
+
     if (!userAnswer) {
       answerResult.textContent = "解答を入力してください。";
       answerResult.style.color = "white";
-    } else if (userAnswer === correct.toLowerCase()) {
+    } else if (userAnswer === correct?.toLowerCase()) {
       answerResult.textContent = "正解です！🎉";
       answerResult.style.color = "green";
 
@@ -382,7 +388,6 @@ document.addEventListener("DOMContentLoaded", () => {
         clearCanvas(panels[2]);
         forceDrawGuide(panels[2]);
       } else if (filename === "panel3.png") {
-        // ここで全パネル表示
         panels.forEach(p => {
           p.panel.style.display = "block";
         });
@@ -400,10 +405,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // パネルの描画操作
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
       if (panel.panel.classList.contains('locked-panel')) return;
-      if (panel.panel.style.display === "none") return; // 非表示パネルは操作不可
+      if (panel.panel.style.display === "none") return;
 
       const rect = panel.canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
@@ -481,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
   stageButtons.addEventListener('click', e => {
     if (e.target.tagName === 'BUTTON') {
       if (e.target.id === "backToPanel3") {
-        updateAnswerArea("panel3.png");
+        updateAnswerArea("images/panel3.png");
         showStageButtons();
         window.dispatchEvent(new Event("panel3-drawn"));
         return;
