@@ -157,3 +157,15 @@ panels.forEach(panel => {
     }
   });
 });
+
+// panel.canvas.addEventListener('pointerup' ... の中で
+if (isAtEnd(last, panel.guidePoints)) {
+  panel.drawn = true;
+  drawLine(panel);
+  imageElement.src = panelImages[panel.index];
+
+  // パネル3（index=2）ならイベント通知
+  if (panel.index === 2) {
+    window.dispatchEvent(new Event("panel3-drawn"));
+  }
+}
