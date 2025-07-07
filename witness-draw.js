@@ -33,7 +33,6 @@ const panelImages = [
 
 const imageElement = document.getElementById("panelImage");
 
-// ガイド線と丸（開始点）を描画
 function drawGuide(panel) {
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
@@ -52,20 +51,23 @@ function drawGuide(panel) {
   ctx.stroke();
 
   const start = panel.guidePoints[0];
-  const last = panel.path[panel.path.length - 1];
-  const reachedEnd = isAtEnd(last || {}, panel.guidePoints);
 
-  // 丸の色は以下の条件で決定
-  // ・現在描画中のパネルか
-  // ・すでに最後まで描き終えたパネルか
-  ctx.fillStyle = (reachedEnd || (isDrawing && activePanel === panel)) ? '#3ad' : '#fff';
+  // activePanelなら水色
+  // 描画済みパネルなら水色
+  // それ以外は白
+  let fillColor = '#fff';
+  if (panel === activePanel) {
+    fillColor = '#3ad'; // 水色
+  } else if (panel.drawn) {
+    fillColor = '#3ad'; // 水色
+  }
 
+  ctx.fillStyle = fillColor;
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
 }
 
-// 線を描く
 function drawLine(panel) {
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
@@ -113,30 +115,19 @@ function drawAllGuides() {
 
 drawAllGuides();
 
-// 各パネルの描画イベント
+// パネル描画完了時の処理
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
-
-    // もし他のパネルで描画中なら、それを終了して丸の色もリセットする
-    if (isDrawing && activePanel && activePanel !== panel) {
-      isDrawing = false;
-
-      activePanel.path = [];
-      activePanel.drawn = false;
-      drawGuide(activePanel); // 丸を白に戻すための再描画
-
-      activePanel = null;
-    }
-
     activePanel = panel;
     isDrawing = true;
 
-    // 全パネルのガイド＋丸を再描画（新しく描画開始するパネルは丸が水色になる）
+    // 全パネルのガイド＋丸を再描画し、activePanelだけ水色丸になる
     drawAllGuides();
 
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
+
     drawLine(panel);
   });
 
@@ -172,5 +163,8 @@ panels.forEach(panel => {
       drawGuide(panel);
       imageElement.src = "";
     }
+
+    // 描画終了後もactivePanelは維持して、丸の色を正しく反映するため再描画
+    drawAllGuides();
   });
 });
