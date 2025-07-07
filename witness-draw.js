@@ -312,6 +312,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.drawAllGuides = drawAllGuides;
 
   // 🔽 起動時に panel3 を表示
-  updateAnswerArea("panel3.png");
+  updateAnswerArea("panel2.png");
   showStageButtons();
 });
