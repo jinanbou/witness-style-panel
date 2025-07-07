@@ -46,8 +46,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "stage3.png": "fetching"
   };
 
-  // ステージ開放管理（panel3は常時開放）
-  // panel1がクリアでstage1解放、stage1クリアでstage2解放、stage2クリアでstage3解放
   let stageUnlocked = [true, false, false];
 
   function updateStageButtonStates() {
@@ -179,22 +177,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (filename === "panel1.png") {
         panels[1].panel.classList.remove("locked-panel");
-        stageUnlocked[0] = true;  // ステージ1解放
+        stageUnlocked[0] = true;
         clearCanvas(panels[1]);
         drawGuide(panels[1]);
+        drawAllGuides();  // 修正追加
       } else if (filename === "panel2.png") {
         panels[2].panel.classList.remove("locked-panel");
-        stageUnlocked[1] = true;  // ステージ2解放
+        stageUnlocked[1] = true;
         clearCanvas(panels[2]);
         drawGuide(panels[2]);
+        drawAllGuides();  // 修正追加
       } else if (filename === "stage1.png") {
-        stageUnlocked[1] = true;  // ステージ2解放
+        stageUnlocked[1] = true;
       } else if (filename === "stage2.png") {
-        stageUnlocked[2] = true;  // ステージ3解放
+        stageUnlocked[2] = true;
       }
 
       updateStageButtonStates();
-
     } else {
       answerResult.textContent = "不正解です。";
       answerResult.style.color = "red";
@@ -285,7 +284,6 @@ document.addEventListener("DOMContentLoaded", () => {
   stageButtons.addEventListener('click', e => {
     if (e.target.tagName === 'BUTTON') {
       if (e.target.id === "backToPanel3") {
-        // 「ステージセレクトに戻る」ボタンでpanel3.pngに戻す
         imageElement.src = "panel3.png";
         updateAnswerArea(imageElement.src);
         hideStageButtons();
@@ -302,7 +300,6 @@ document.addEventListener("DOMContentLoaded", () => {
     showStageButtons();
   });
 
-  // 初期ステージ開放状態設定
   stageUnlocked = [true, false, false];
   updateStageButtonStates();
 
