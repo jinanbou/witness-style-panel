@@ -41,6 +41,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const imageElement = document.getElementById("panelImage");
   const stageButtons = document.getElementById("stageButtons");
+  const answerArea = document.getElementById("answerArea");
+  const answerInput = document.getElementById("answerInput");
+  const answerButton = document.getElementById("answerButton");
+  const answerResult = document.getElementById("answerResult");
+
+  const correctAnswers = {
+    "panel1.png": "visits",
+    "panel2.png": "comment",
+    "panel3.png": "helps",
+    "stage1.png": "burglary",
+    "stage2.png": "alley",
+    "stage3.png": "fetching"
+  };
 
   function clearCanvas(panel) {
     panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
@@ -73,7 +86,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (panel.path.length < 2) return;
 
     const ctx = panel.ctx;
-    // キャンバスクリア・ガイドはここでは行わない（drawAllGuidesでまとめてやる）
+    clearCanvas(panel);
+    drawGuide(panel);
 
     ctx.strokeStyle = '#3ad';
     ctx.lineWidth = 6;
@@ -119,13 +133,11 @@ document.addEventListener("DOMContentLoaded", () => {
     panels.forEach(panel => {
       clearCanvas(panel);
       drawGuide(panel);
-      if (panel.path.length > 1) {
+      if (panel.drawn && panel.path.length > 1) {
         drawLine(panel);
       }
     });
   }
-
-  drawAllGuides();
 
   function showStageButtons() {
     stageButtons.style.display = 'flex';
@@ -137,7 +149,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showStageImage(index) {
     imageElement.src = stageImages[index];
+    updateAnswerArea(imageElement.src);
   }
+
+  function updateAnswerArea(imageSrc) {
+    const filename = imageSrc.split("/").pop();
+    if (correctAnswers[filename]) {
+      answerArea.style.display = "block";
+      answerInput.value = "";
+      answerResult.textContent = "";
+    } else {
+      answerArea.style.display = "none";
+    }
+  }
+
+  answerButton.addEventListener("click", () => {
+    const filename = imageElement.src.split("/").pop();
+    const correct = correctAnswers[filename];
+    const userAnswer = answerInput.value.trim().toLowerCase();
+    if (!userAnswer) {
+      answerResult.textContent = "解答を入力してください。";
+      answerResult.style.color = "black";
+    } else if (userAnswer === correct.toLowerCase()) {
+      answerResult.textContent = "正解です！🎉";
+      answerResult.style.color = "green";
+    } else {
+      answerResult.textContent = "不正解です。";
+      answerResult.style.color = "red";
+    }
+  });
+
+  drawAllGuides();
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
@@ -149,11 +191,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const startPoint = panel.guidePoints[0];
 
       const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
-      const threshold = 100; // 10px以内
+      const threshold = 100;
 
       if (distanceSquared > threshold) return;
 
-      // 他パネルの線をリセット
       panels.forEach(p => {
         if (p !== panel) {
           p.drawn = false;
@@ -169,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
       drawAllGuides();
 
       panel.path = [startPoint];
-      drawAllGuides();  // pathができたので全描画
+      drawLine(panel);
     });
 
     panel.canvas.addEventListener('pointermove', e => {
@@ -181,7 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const last = panel.path[panel.path.length - 1];
       if (!pointsEqual(snap, last)) {
         panel.path.push(snap);
-        drawAllGuides();
+        drawLine(panel);
       }
     });
 
@@ -193,9 +234,8 @@ document.addEventListener("DOMContentLoaded", () => {
         panel.drawn = true;
         lastDrawnPanelIndex = panel.index;
 
-        drawAllGuides();
+        drawLine(panel);
 
-        // 他パネルはガイドのみ描画
         panels.forEach(p => {
           if (p !== panel) {
             clearCanvas(p);
@@ -204,6 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         imageElement.src = panelImages[panel.index];
+        updateAnswerArea(imageElement.src);
 
         if (panel.index === 2) {
           window.dispatchEvent(new Event("panel3-drawn"));
@@ -216,6 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lastDrawnPanelIndex = -1;
         drawAllGuides();
         imageElement.src = "";
+        updateAnswerArea("");
         hideStageButtons();
       }
     });
