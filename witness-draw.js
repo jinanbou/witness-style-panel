@@ -1,5 +1,3 @@
-// witness-draw.js
-
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -33,22 +31,7 @@ const panelImages = [
   "panel3.png"
 ];
 
-const stageImages = [
-  "stage1.png",
-  "stage2.png",
-  "stage3.png"
-];
-
 const imageElement = document.getElementById("panelImage");
-const stageButtons = document.getElementById("stageButtons");
-const backToPanel3Btn = document.getElementById("backToPanel3");
-
-backToPanel3Btn.addEventListener("click", () => {
-  // パネル3の画像を表示しつつ、ステージ選択ボタンは非表示にしない
-  imageElement.src = panelImages[2];
-  // ここでステージボタンは消さずに残します
-  // 何もしない（hideStageButtons呼ばない）
-});
 
 function drawGuide(panel) {
   const ctx = panel.ctx;
@@ -123,18 +106,7 @@ function drawAllGuides() {
 
 drawAllGuides();
 
-function showStageButtons() {
-  stageButtons.style.display = 'flex';
-}
-
-function hideStageButtons() {
-  stageButtons.style.display = 'none';
-}
-
-function showStageImage(index) {
-  imageElement.src = stageImages[index];
-}
-
+// イベント：パネル描画完了
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
@@ -178,29 +150,12 @@ panels.forEach(panel => {
       if (panel.index === 2) {
         console.log("panel3 drawn event fired");
         window.dispatchEvent(new Event("panel3-drawn"));
-      } else {
-        hideStageButtons();
       }
     } else {
       panel.path = [];
       panel.drawn = false;
       drawGuide(panel);
       imageElement.src = "";
-      hideStageButtons();
     }
   });
-});
-
-stageButtons.addEventListener('click', e => {
-  if (e.target.tagName === 'BUTTON' && e.target !== backToPanel3Btn) {
-    const idx = parseInt(e.target.dataset.index);
-    if (!isNaN(idx)) {
-      showStageImage(idx);
-    }
-  }
-});
-
-window.addEventListener("panel3-drawn", () => {
-  console.log("panel3-drawn event caught");
-  showStageButtons();
 });
