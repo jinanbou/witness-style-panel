@@ -127,23 +127,33 @@ function showStageImage(index) {
 }
 
 panels.forEach(panel => {
-  panel.canvas.addEventListener('pointerdown', e => {
-    if (panel.panel.classList.contains('locked-panel')) return;
-    activePanel = panel;
-    isDrawing = true;
-
-    lastDrawnPanelIndex = panel.index; // ⭐️ 描き始めた時点で記録
-
-    drawAllGuides();
-
-    const rect = panel.canvas.getBoundingClientRect();
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
-    const startPoint = panel.guidePoints[0];
-    panel.path = [startPoint];
+  panel.canvas.addEventListener('pointerup', () => {
+  if (!isDrawing || activePanel !== panel) return;
+  isDrawing = false;
+  const last = panel.path[panel.path.length - 1];
+  if (isAtEnd(last, panel.guidePoints)) {
+    panel.drawn = true;
+    lastDrawnPanelIndex = panel.index;
     drawLine(panel);
-  });
+    drawAllGuides(); // 🔵 追加：青い丸更新のため
+    imageElement.src = panelImages[panel.index];
 
+    if (panel.index === 2) {
+      console.log("panel3 drawn event fired");
+      window.dispatchEvent(new Event("panel3-drawn"));
+    } else {
+      console.log("non-panel3 drawn, hiding buttons");
+      hideStageButtons();
+    }
+  } else {
+    panel.path = [];
+    panel.drawn = false;
+    lastDrawnPanelIndex = -1;
+    drawAllGuides(); // 🔵 追加：他のパネルも白丸に戻す
+    imageElement.src = "";
+    hideStageButtons();
+  }
+});
   panel.canvas.addEventListener('pointermove', e => {
     if (!isDrawing || activePanel !== panel) return;
     const rect = panel.canvas.getBoundingClientRect();
@@ -200,3 +210,5 @@ window.addEventListener("panel3-drawn", () => {
   console.log("panel3-drawn event caught");
   showStageButtons();
 });
+
+window.drawAllGuides = drawAllGuides;
