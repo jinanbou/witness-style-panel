@@ -50,13 +50,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // ステージ開放管理（panel3は常時開放）
   // panel1がクリアでstage1解放、stage1クリアでstage2解放、stage2クリアでstage3解放
   let stageUnlocked = [true, false, false];
-  // panel3は常時開放なのでステージ3ボタンは最初から押せる形でもOKですが仕様的にステージ3はボタンのロック解除扱いしません
+  // panel3は常時開放なのでステージ3は初期ロックでもOK（仕様により）
 
   function updateStageButtonStates() {
     const buttons = stageButtons.querySelectorAll('button[data-index]');
     buttons.forEach(btn => {
       const idx = parseInt(btn.dataset.index);
       btn.disabled = !stageUnlocked[idx];
+      btn.style.opacity = btn.disabled ? "0.5" : "1";
+      btn.style.cursor = btn.disabled ? "not-allowed" : "pointer";
     });
   }
 
@@ -179,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
       answerResult.textContent = "正解です！🎉";
       answerResult.style.color = "green";
 
-      // 正解時に次のパネルをアンロック
+      // 正解時に次のパネル・ステージをアンロック
       if (filename === "panel1.png") {
         panels[1].panel.classList.remove("locked-panel");
         stageUnlocked[0] = true;  // ステージ1解放
@@ -292,8 +294,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   backToPanel3Button.addEventListener("click", () => {
     showStageButtons();
-    imageElement.src = "";
-    answerArea.style.display = "none";
+    imageElement.src = panelImages[2];  // panel3.pngに戻す
+    updateAnswerArea(panelImages[2]);
   });
 
   window.addEventListener("panel3-drawn", () => {
@@ -301,7 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // 初期ステージ開放状態設定
-  // panel3は常時開放なのでstage3は初期ロック
   stageUnlocked = [true, false, false];
   updateStageButtonStates();
 
