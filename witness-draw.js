@@ -1,3 +1,5 @@
+// witness-draw.js
+
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -31,7 +33,14 @@ const panelImages = [
   "panel3.png"
 ];
 
+const stageImages = [
+  "stage1.png",
+  "stage2.png",
+  "stage3.png"
+];
+
 const imageElement = document.getElementById("panelImage");
+const stageButtons = document.getElementById("stageButtons");
 
 function drawGuide(panel) {
   const ctx = panel.ctx;
@@ -106,6 +115,18 @@ function drawAllGuides() {
 
 drawAllGuides();
 
+function showStageButtons() {
+  stageButtons.style.display = 'flex';
+}
+
+function hideStageButtons() {
+  stageButtons.style.display = 'none';
+}
+
+function showStageImage(index) {
+  imageElement.src = stageImages[index];
+}
+
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
@@ -119,6 +140,8 @@ panels.forEach(panel => {
     });
 
     const rect = panel.canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
     drawLine(panel);
@@ -146,8 +169,8 @@ panels.forEach(panel => {
       drawLine(panel);
       imageElement.src = panelImages[panel.index];
 
-      // パネル3完了通知を発火
       if (panel.index === 2) {
+        console.log("panel3 drawn event fired");
         window.dispatchEvent(new Event("panel3-drawn"));
       }
     } else {
@@ -155,6 +178,23 @@ panels.forEach(panel => {
       panel.drawn = false;
       drawGuide(panel);
       imageElement.src = "";
+      hideStageButtons();
     }
   });
+});
+
+// ステージボタンのクリックイベント
+stageButtons.addEventListener('click', e => {
+  if (e.target.tagName === 'BUTTON') {
+    const idx = parseInt(e.target.dataset.index);
+    if (!isNaN(idx)) {
+      showStageImage(idx);
+    }
+  }
+});
+
+// パネル3完了時のイベントリスナー
+window.addEventListener("panel3-drawn", () => {
+  console.log("panel3-drawn event caught");
+  showStageButtons();
 });
