@@ -126,19 +126,26 @@ function showStageImage(index) {
   imageElement.src = stageImages[index];
 }
 
-// パネルごとのイベント設定
+// 修正した pointerdown イベント（スタート地点の距離チェック付き）
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
-    activePanel = panel;
-    isDrawing = true;
-    lastDrawnPanelIndex = panel.index;
-    drawAllGuides();
 
     const rect = panel.canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
     const startPoint = panel.guidePoints[0];
+
+    const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
+    const threshold = 100; // 10px以内の距離許容（100 = 10^2）
+
+    if (distanceSquared > threshold) return; // スタート地点に近くなければ何もしない
+
+    activePanel = panel;
+    isDrawing = true;
+    lastDrawnPanelIndex = panel.index;
+    drawAllGuides();
+
     panel.path = [startPoint];
     drawLine(panel);
   });
@@ -164,7 +171,7 @@ panels.forEach(panel => {
       panel.drawn = true;
       lastDrawnPanelIndex = panel.index;
       drawLine(panel);
-      drawAllGuides(); // 丸の色更新
+      drawAllGuides();
       imageElement.src = panelImages[panel.index];
 
       if (panel.index === 2) {
@@ -178,7 +185,7 @@ panels.forEach(panel => {
       panel.path = [];
       panel.drawn = false;
       lastDrawnPanelIndex = -1;
-      drawAllGuides(); // 白丸に戻す
+      drawAllGuides();
       imageElement.src = "";
       hideStageButtons();
     }
