@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ステージ開放管理（panel3は常時開放）
   // panel1がクリアでstage1解放、stage1クリアでstage2解放、stage2クリアでstage3解放
-  let stageUnlocked = [false, false, false];
+  let stageUnlocked = [true, false, false];
   // panel3は常時開放なのでステージ3ボタンは最初から押せる形でもOKですが仕様的にステージ3はボタンのロック解除扱いしません
 
   function updateStageButtonStates() {
