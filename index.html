@@ -363,11 +363,16 @@
 
     // panel1 正解時：panel2解放 + 見た目も更新
     if (filename === "panel1.png") {
-      stageUnlocked[0] = true;
-      stageUnlocked[1] = true;
-      panels[1].panel.classList.remove("locked-panel"); // ← 追加
-      updateStageButtonStates();
-    }
+  stageUnlocked[0] = true;
+  stageUnlocked[1] = true;
+
+  // panel2 をアンロックしてガイドを描画
+  panels[1].panel.classList.remove("locked-panel");
+  clearCanvas(panels[1]);          // キャンバスをクリア
+  drawGuide(panels[1]);            // ガイドを描画
+
+  updateStageButtonStates();
+}
 
     // panel2 正解時：ステージ2解放 + 見た目更新
     if (filename === "panel2.png") {
