@@ -291,6 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target.tagName === 'BUTTON') {
       if (e.target.id === "backToPanel3") {
         updateAnswerArea("panel3.png");
+        showStageButtons();
         window.dispatchEvent(new Event("panel3-drawn"));
         return;
       }
