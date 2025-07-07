@@ -61,9 +61,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawGuide(panel) {
-    const ctx = panel.ctx;
     if (panel.panel.classList.contains('locked-panel')) return;
+    forceDrawGuide(panel);
+  }
 
+  function forceDrawGuide(panel) {
+    const ctx = panel.ctx;
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
@@ -179,14 +182,12 @@ document.addEventListener("DOMContentLoaded", () => {
         panels[1].panel.classList.remove("locked-panel");
         stageUnlocked[0] = true;
         clearCanvas(panels[1]);
-        drawGuide(panels[1]);
-        drawAllGuides();  // 修正追加
+        forceDrawGuide(panels[1]);
       } else if (filename === "panel2.png") {
         panels[2].panel.classList.remove("locked-panel");
         stageUnlocked[1] = true;
         clearCanvas(panels[2]);
-        drawGuide(panels[2]);
-        drawAllGuides();  // 修正追加
+        forceDrawGuide(panels[2]);
       } else if (filename === "stage1.png") {
         stageUnlocked[1] = true;
       } else if (filename === "stage2.png") {
