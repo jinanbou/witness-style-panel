@@ -20,11 +20,12 @@ export class StageController {
   }
 
   init() {
-    console.log("StageController 初期化");
+    console.log("[init] 初期化開始");
     this.hideDrawingPanels(); // ← 初期状態で非表示にする
     this.updateStageButtonStates();
     this.bindEvents();
     this.showPanel3State();
+    console.log("[init] 初期化完了");
   }
 
   bindEvents() {
@@ -38,22 +39,22 @@ export class StageController {
       if (!btn) return;
 
       if (btn.id === "backToPanel3") {
-        console.log("パネル3表示ボタン押下");
+        console.log("[stageButtons] backToPanel3クリック");
         this.showPanel3State();
       } else {
         const idx = parseInt(btn.dataset.index);
         if (isNaN(idx)) return;
         if (!this.stageUnlocked[idx]) {
-          console.log(`ステージ${idx}はアンロックされていません`);
+          console.log(`[stageButtons] ステージ${idx}は未アンロック`);
           return;
         }
-        console.log(`ステージ${idx}表示`);
+        console.log(`[stageButtons] ステージ${idx}を表示`);
         this.showStage(idx);
       }
     });
 
     window.addEventListener("panel3-drawn", () => {
-      console.log("panel3-drawn イベント受信");
+      console.log("[window] panel3-drawn イベント受信");
       this.unlockStagesAfterPanel3();
     });
   }
@@ -63,7 +64,7 @@ export class StageController {
     buttons.forEach(btn => {
       const idx = parseInt(btn.dataset.index);
       btn.disabled = !this.stageUnlocked[idx];
-      console.log(`ステージボタン${idx}は ${btn.disabled ? "無効" : "有効"}`);
+      console.log(`[updateStageButtonStates] ボタン${idx}は${btn.disabled ? "無効" : "有効"}`);
     });
   }
 
@@ -71,15 +72,15 @@ export class StageController {
     const src = this.imageElement.src;
     const filename = src.split("/").pop();
     const correct = this.correctAnswers[filename];
-    console.log(`回答画像ファイル名: ${filename}, 正解: ${correct}`);
+    console.log(`[checkAnswer] filename=${filename} correct=${correct}`);
 
     if (!correct) {
-      console.warn("この画像に対応する正解が設定されていません");
+      console.warn("[checkAnswer] この画像に正解が設定されていません");
       return;
     }
 
     const input = this.answerInput.value.trim().toLowerCase();
-    console.log(`ユーザー入力: '${input}'`);
+    console.log(`[checkAnswer] 入力='${input}'`);
 
     if (!input) {
       this.answerResult.textContent = "解答を入力してください。";
@@ -87,25 +88,27 @@ export class StageController {
       return;
     }
     if (input === correct.toLowerCase()) {
-      console.log("正解判定");
+      console.log("[checkAnswer] 正解！");
       this.answerResult.textContent = "正解です！🎉";
       this.answerResult.style.color = "lime";
       this.handleCorrectAnswer(filename);
     } else {
-      console.log("不正解判定");
+      console.log("[checkAnswer] 不正解");
       this.answerResult.textContent = "不正解です。";
       this.answerResult.style.color = "red";
     }
   }
 
   handleCorrectAnswer(filename) {
-    console.log("handleCorrectAnswer:", filename);
+    console.log(`[handleCorrectAnswer] filename=${filename}`);
+
     let updated = false;
 
     if (filename === "panel3.png") {
       this.stageUnlocked[0] = true;
       this.stageUnlocked[1] = true;
-      this.showDrawingPanels();
+      this.showDrawingPanels();  // 表示切り替え
+      console.log("[handleCorrectAnswer] panel3正解でパネル表示");
       updated = true;
     }
     if (filename === "panel1.png" && !this.stageUnlocked[0]) {
@@ -126,24 +129,24 @@ export class StageController {
     }
 
     if (updated) {
-      console.log("ステージアンロック更新あり");
       this.updateStageButtonStates();
     }
   }
 
   showPanel3State() {
-    console.log("パネル3状態表示");
+    console.log("[showPanel3State] panel3状態を表示");
     this.showImage(this.panelImages[2]);
     this.stageButtons.style.display = "flex";
+    this.hideDrawingPanels();  // panel3表示時は描画パネルは非表示に戻す
   }
 
   showStage(idx) {
-    console.log(`ステージ画像表示: ${this.stageImages[idx]}`);
+    console.log(`[showStage] ステージ${idx}の画像を表示`);
     this.showImage(this.stageImages[idx]);
   }
 
   showImage(src) {
-    console.log(`画像セット: ${src}`);
+    console.log(`[showImage] 画像をセット: ${src}`);
     this.imageElement.src = src;
     this.answerArea.style.display = "flex";
     this.answerInput.value = "";
@@ -151,22 +154,22 @@ export class StageController {
   }
 
   unlockStagesAfterPanel3() {
-    console.log("panel3 描画後ステージをアンロック");
+    console.log("[unlockStagesAfterPanel3] ステージアンロック");
     this.stageUnlocked[0] = true;
     this.stageUnlocked[1] = true;
     this.updateStageButtonStates();
   }
 
   hideDrawingPanels() {
-    console.log("描画パネル非表示");
     if (this.panelContainer) {
+      console.log("[hideDrawingPanels] 描画パネル非表示");
       this.panelContainer.style.display = "none";
     }
   }
 
   showDrawingPanels() {
-    console.log("描画パネル表示");
     if (this.panelContainer) {
+      console.log("[showDrawingPanels] 描画パネル表示");
       this.panelContainer.style.display = "flex";
     }
   }
