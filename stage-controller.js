@@ -1,4 +1,3 @@
-
 // stage-controller.js
 export class StageController {
   constructor(options) {
@@ -19,6 +18,7 @@ export class StageController {
   }
 
   init() {
+    this.hideAllPanels(); // 初期化時にすべてのパネルを非表示に
     this.updateStageButtonStates();
     this.bindEvents();
     this.showPanel3State();
@@ -80,14 +80,24 @@ export class StageController {
   }
 
   handleCorrectAnswer(filename) {
-    // パネル3正解でパネル1,2解放
+    // ✅ panel3 正解で .panel 要素を表示
     if (filename === "panel3.png") {
       this.stageUnlocked[0] = true;
       this.stageUnlocked[1] = true;
       this.updateStageButtonStates();
-      // 他のUI操作あればここで
+
+      // 🔽 .panel クラスを表示する
+      document.querySelectorAll(".panel").forEach(panel => {
+        panel.classList.remove("hidden-panel");
+      });
+
+      // 🔽 ガイド再描画（もし関数が定義されていれば）
+      if (window.drawAllGuides) {
+        window.drawAllGuides();
+      }
     }
-    // パネル1,2やステージ解答に応じてロック解除も可
+
+    // ▼ 他の解答によるステージ解放（必要に応じて調整）
     if (filename === "panel1.png") {
       this.stageUnlocked[0] = true;
       this.updateStageButtonStates();
@@ -125,5 +135,11 @@ export class StageController {
     this.stageUnlocked[0] = true;
     this.stageUnlocked[1] = true;
     this.updateStageButtonStates();
+  }
+
+  hideAllPanels() {
+    document.querySelectorAll(".panel").forEach(panel => {
+      panel.classList.add("hidden-panel");
+    });
   }
 }
