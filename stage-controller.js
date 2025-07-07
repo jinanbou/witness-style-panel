@@ -1,42 +1,128 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const stageButtons = document.getElementById("stageButtons");
-  const imageElement = document.getElementById("panelImage");
-  const backToPanel3Btn = document.getElementById("backToPanel3");
+// stage-controller.js
+export class StageController {
+  constructor(options) {
+    this.panelImages = options.panelImages; // ["images/panel1.png", ...]
+    this.stageImages = options.stageImages; // ["images/stage1.png", ...]
+    this.correctAnswers = options.correctAnswers; // { "panel3.png":"helps", ... }
 
-  const stageImages = [
-    "stage1.png",
-    "stage2.png",
-    "stage3.png"
-  ];
+    this.stageUnlocked = [false, false, true]; // panel3のみ最初からアンロック
+    this.stageButtons = document.getElementById("stageButtons");
+    this.answerArea = document.getElementById("answerArea");
+    this.answerInput = document.getElementById("answerInput");
+    this.answerButton = document.getElementById("answerButton");
+    this.answerResult = document.getElementById("answerResult");
+    this.backToPanel3Btn = document.getElementById("backToPanel3");
+    this.imageElement = document.getElementById("panelImage");
 
-  function showStageButtons() {
-    stageButtons.style.display = "flex";
+    this.init();
   }
 
-  function hideStageButtons() {
-    stageButtons.style.display = "none";
+  init() {
+    this.updateStageButtonStates();
+    this.bindEvents();
+    this.showPanel3State();
   }
 
-  function showStageImage(index) {
-    imageElement.src = stageImages[index];
-  }
+  bindEvents() {
+    this.answerButton.addEventListener("click", () => this.checkAnswer());
+    this.answerInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") this.checkAnswer();
+    });
 
-  window.addEventListener("panel3-drawn", () => {
-    console.log("panel3-drawn event caught");
-    showStageButtons();
-  });
+    this.stageButtons.addEventListener("click", e => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
 
-  stageButtons.addEventListener("click", (e) => {
-    if (e.target.tagName === "BUTTON") {
-      if (e.target === backToPanel3Btn) {
-        imageElement.src = "panel3.png";
-          drawAllGuides(); // 🔵 追加：青い丸を再表示するため（witness-draw.jsにexport必要）
-        } else {
-        const idx = parseInt(e.target.dataset.index);
-        if (!isNaN(idx)) {
-        showStageImage(idx);
-        }
+      if (btn.id === "backToPanel3") {
+        this.showPanel3State();
+      } else {
+        const idx = parseInt(btn.dataset.index);
+        if (isNaN(idx)) return;
+        if (!this.stageUnlocked[idx]) return;
+        this.showStage(idx);
       }
+    });
+
+    window.addEventListener("panel3-drawn", () => {
+      this.unlockStagesAfterPanel3();
+    });
+  }
+
+  updateStageButtonStates() {
+    const buttons = this.stageButtons.querySelectorAll('button[data-index]');
+    buttons.forEach(btn => {
+      const idx = parseInt(btn.dataset.index);
+      btn.disabled = !this.stageUnlocked[idx];
+    });
+  }
+
+  checkAnswer() {
+    const src = this.imageElement.src;
+    const filename = src.split("/").pop();
+    const correct = this.correctAnswers[filename];
+    if (!correct) return;
+
+    const input = this.answerInput.value.trim().toLowerCase();
+    if (!input) {
+      this.answerResult.textContent = "解答を入力してください。";
+      this.answerResult.style.color = "white";
+      return;
     }
-  });
-});
+    if (input === correct.toLowerCase()) {
+      this.answerResult.textContent = "正解です！🎉";
+      this.answerResult.style.color = "lime";
+      this.handleCorrectAnswer(filename);
+    } else {
+      this.answerResult.textContent = "不正解です。";
+      this.answerResult.style.color = "red";
+    }
+  }
+
+  handleCorrectAnswer(filename) {
+    // パネル3正解でパネル1,2解放
+    if (filename === "panel3.png") {
+      this.stageUnlocked[0] = true;
+      this.stageUnlocked[1] = true;
+      this.updateStageButtonStates();
+      // 他のUI操作あればここで
+    }
+    // パネル1,2やステージ解答に応じてロック解除も可
+    if (filename === "panel1.png") {
+      this.stageUnlocked[0] = true;
+      this.updateStageButtonStates();
+    }
+    if (filename === "panel2.png") {
+      this.stageUnlocked[1] = true;
+      this.updateStageButtonStates();
+    }
+    if (filename === "stage1.png") {
+      this.stageUnlocked[1] = true;
+      this.updateStageButtonStates();
+    }
+    if (filename === "stage2.png") {
+      this.stageUnlocked[2] = true;
+      this.updateStageButtonStates();
+    }
+  }
+
+  showPanel3State() {
+    this.imageElement.src = this.panelImages[2];
+    this.answerArea.style.display = "flex";
+    this.answerInput.value = "";
+    this.answerResult.textContent = "";
+    this.stageButtons.style.display = "flex";
+  }
+
+  showStage(idx) {
+    this.imageElement.src = this.stageImages[idx];
+    this.answerArea.style.display = "flex";
+    this.answerInput.value = "";
+    this.answerResult.textContent = "";
+  }
+
+  unlockStagesAfterPanel3() {
+    this.stageUnlocked[0] = true;
+    this.stageUnlocked[1] = true;
+    this.updateStageButtonStates();
+  }
+}
