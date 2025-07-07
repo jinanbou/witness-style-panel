@@ -46,6 +46,19 @@ document.addEventListener("DOMContentLoaded", () => {
     "stage3.png": "fetching"
   };
 
+  // ステージ開放管理（panel3は常時開放）
+  // panel1がクリアでstage1解放、stage1クリアでstage2解放、stage2クリアでstage3解放
+  let stageUnlocked = [false, false, false];
+  // panel3は常時開放なのでステージ3ボタンは最初から押せる形でもOKですが仕様的にステージ3はボタンのロック解除扱いしません
+
+  function updateStageButtonStates() {
+    const buttons = stageButtons.querySelectorAll('button[data-index]');
+    buttons.forEach(btn => {
+      const idx = parseInt(btn.dataset.index);
+      btn.disabled = !stageUnlocked[idx];
+    });
+  }
+
   function clearCanvas(panel) {
     panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
   }
@@ -130,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showStageButtons() {
     stageButtons.style.display = 'flex';
+    updateStageButtonStates();
   }
 
   function hideStageButtons() {
@@ -167,11 +181,18 @@ document.addEventListener("DOMContentLoaded", () => {
       // 正解時に次のパネルをアンロック
       if (filename === "panel1.png") {
         panels[1].panel.classList.remove("locked-panel");
-        drawAllGuides();
+        stageUnlocked[0] = true;  // ステージ1解放
       } else if (filename === "panel2.png") {
         panels[2].panel.classList.remove("locked-panel");
-        drawAllGuides();
+        stageUnlocked[1] = true;  // ステージ2解放
+      } else if (filename === "stage1.png") {
+        stageUnlocked[1] = true;  // ステージ2解放
+      } else if (filename === "stage2.png") {
+        stageUnlocked[2] = true;  // ステージ3解放
       }
+
+      updateStageButtonStates();
+
     } else {
       answerResult.textContent = "不正解です。";
       answerResult.style.color = "red";
@@ -262,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
   stageButtons.addEventListener('click', e => {
     if (e.target.tagName === 'BUTTON') {
       const idx = parseInt(e.target.dataset.index);
-      if (!isNaN(idx)) {
+      if (!isNaN(idx) && stageUnlocked[idx]) {  // 未開放なら反応しない
         showStageImage(idx);
       }
     }
@@ -271,6 +292,11 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("panel3-drawn", () => {
     showStageButtons();
   });
+
+  // 初期ステージ開放状態設定
+  // panel3は常時開放なのでstage3は初期ロック
+  stageUnlocked = [false, false, false];
+  updateStageButtonStates();
 
   window.drawAllGuides = drawAllGuides;
 });
