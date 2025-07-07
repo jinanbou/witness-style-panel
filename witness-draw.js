@@ -26,7 +26,7 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
 
 let activePanel = null;
 let isDrawing = false;
-let lastDrawnPanelIndex = -1; // 🔵 追加：最後に成功したパネル
+let lastDrawnPanelIndex = -1; // 🔵 最後に描かれたパネル
 
 const panelImages = [
   "panel1.png",
@@ -128,22 +128,21 @@ function showStageImage(index) {
 
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
-  if (panel.panel.classList.contains('locked-panel')) return;
-  activePanel = panel;
-  isDrawing = true;
+    if (panel.panel.classList.contains('locked-panel')) return;
+    activePanel = panel;
+    isDrawing = true;
 
-  lastDrawnPanelIndex = panel.index; // 🔵 現在のパネルを一時的に水色にする
+    lastDrawnPanelIndex = panel.index; // ⭐️ 描き始めた時点で記録
 
-  drawAllGuides();
+    drawAllGuides();
 
-  const rect = panel.canvas.getBoundingClientRect();
-  const sx = e.clientX - rect.left;
-  const sy = e.clientY - rect.top;
-  const startPoint = panel.guidePoints[0];
-  panel.path = [startPoint];
-  drawLine(panel);
-});
-
+    const rect = panel.canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const startPoint = panel.guidePoints[0];
+    panel.path = [startPoint];
+    drawLine(panel);
+  });
 
   panel.canvas.addEventListener('pointermove', e => {
     if (!isDrawing || activePanel !== panel) return;
@@ -164,7 +163,7 @@ panels.forEach(panel => {
     const last = panel.path[panel.path.length - 1];
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
-      lastDrawnPanelIndex = panel.index; // ✅ 成功時だけ記録
+      lastDrawnPanelIndex = panel.index;
       drawLine(panel);
       imageElement.src = panelImages[panel.index];
 
@@ -178,7 +177,7 @@ panels.forEach(panel => {
     } else {
       panel.path = [];
       panel.drawn = false;
-      lastDrawnPanelIndex = -1; // ❌ 失敗なら白に戻す
+      lastDrawnPanelIndex = -1;
       drawGuide(panel);
       imageElement.src = "";
       hideStageButtons();
