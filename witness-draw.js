@@ -52,15 +52,8 @@ function drawGuide(panel) {
 
   const start = panel.guidePoints[0];
 
-  // activePanelなら水色
-  // 描画済みパネルなら水色
-  // それ以外は白
-  let fillColor = '#fff';
-  if (panel === activePanel) {
-    fillColor = '#3ad'; // 水色
-  } else if (panel.drawn) {
-    fillColor = '#3ad'; // 水色
-  }
+  // ここを「線を引いているパネルのみ水色」に変更
+  let fillColor = (panel === activePanel) ? '#3ad' : '#fff';
 
   ctx.fillStyle = fillColor;
   ctx.beginPath();
