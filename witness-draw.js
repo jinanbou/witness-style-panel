@@ -31,15 +31,7 @@ const panelImages = [
   "panel3.png"
 ];
 
-const stageImages = [
-  "stage1.png",
-  "stage2.png",
-  "stage3.png"
-];
-
 const imageElement = document.getElementById("panelImage");
-const stageButtonsContainer = document.getElementById("stageButtons");
-const stageButtons = stageButtonsContainer.querySelectorAll("button");
 
 function drawGuide(panel) {
   const ctx = panel.ctx;
@@ -114,7 +106,6 @@ function drawAllGuides() {
 
 drawAllGuides();
 
-// すべてのパネルにイベントリスナーを登録
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
@@ -155,26 +146,15 @@ panels.forEach(panel => {
       drawLine(panel);
       imageElement.src = panelImages[panel.index];
 
-      // パネル3ならステージ選択ボタンを表示
+      // パネル3完了通知を発火
       if (panel.index === 2) {
-        stageButtonsContainer.style.display = "flex";
-      } else {
-        stageButtonsContainer.style.display = "none";
+        window.dispatchEvent(new Event("panel3-drawn"));
       }
     } else {
       panel.path = [];
       panel.drawn = false;
       drawGuide(panel);
       imageElement.src = "";
-      stageButtonsContainer.style.display = "none";
     }
-  });
-});
-
-// ステージボタンのクリック処理（stage1~3.pngを表示）
-stageButtons.forEach(button => {
-  button.addEventListener('click', () => {
-    const index = parseInt(button.getAttribute('data-index'));
-    imageElement.src = stageImages[index];
   });
 });
