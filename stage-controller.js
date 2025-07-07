@@ -1,5 +1,3 @@
-// stage-controller.js
-
 const stageButtons = document.getElementById("stageButtons");
 const imageElement = document.getElementById("panelImage");
 
