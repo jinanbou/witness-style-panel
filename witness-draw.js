@@ -36,7 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const answerInput = document.getElementById("answerInput");
   const answerButton = document.getElementById("answerButton");
   const answerResult = document.getElementById("answerResult");
-  const backToPanel3Button = document.getElementById("backToPanel3");
 
   const correctAnswers = {
     "panel1.png": "visits",
@@ -50,15 +49,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // ステージ開放管理（panel3は常時開放）
   // panel1がクリアでstage1解放、stage1クリアでstage2解放、stage2クリアでstage3解放
   let stageUnlocked = [true, false, false];
-  // panel3は常時開放なのでステージ3は初期ロックでもOK（仕様により）
 
   function updateStageButtonStates() {
     const buttons = stageButtons.querySelectorAll('button[data-index]');
     buttons.forEach(btn => {
       const idx = parseInt(btn.dataset.index);
       btn.disabled = !stageUnlocked[idx];
-      btn.style.opacity = btn.disabled ? "0.5" : "1";
-      btn.style.cursor = btn.disabled ? "not-allowed" : "pointer";
     });
   }
 
@@ -181,13 +177,16 @@ document.addEventListener("DOMContentLoaded", () => {
       answerResult.textContent = "正解です！🎉";
       answerResult.style.color = "green";
 
-      // 正解時に次のパネル・ステージをアンロック
       if (filename === "panel1.png") {
         panels[1].panel.classList.remove("locked-panel");
         stageUnlocked[0] = true;  // ステージ1解放
+        clearCanvas(panels[1]);
+        drawGuide(panels[1]);
       } else if (filename === "panel2.png") {
         panels[2].panel.classList.remove("locked-panel");
         stageUnlocked[1] = true;  // ステージ2解放
+        clearCanvas(panels[2]);
+        drawGuide(panels[2]);
       } else if (filename === "stage1.png") {
         stageUnlocked[1] = true;  // ステージ2解放
       } else if (filename === "stage2.png") {
@@ -285,17 +284,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   stageButtons.addEventListener('click', e => {
     if (e.target.tagName === 'BUTTON') {
+      if (e.target.id === "backToPanel3") {
+        // 「ステージセレクトに戻る」ボタンでpanel3.pngに戻す
+        imageElement.src = "panel3.png";
+        updateAnswerArea(imageElement.src);
+        hideStageButtons();
+        return;
+      }
       const idx = parseInt(e.target.dataset.index);
-      if (!isNaN(idx) && stageUnlocked[idx]) {  // 未開放なら反応しない
+      if (!isNaN(idx) && stageUnlocked[idx]) {
         showStageImage(idx);
       }
     }
-  });
-
-  backToPanel3Button.addEventListener("click", () => {
-    showStageButtons();
-    imageElement.src = panelImages[2];  // panel3.pngに戻す
-    updateAnswerArea(panelImages[2]);
   });
 
   window.addEventListener("panel3-drawn", () => {
