@@ -31,6 +31,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const stageImages = ["stage1.png", "stage2.png", "stage3.png"];
 
   const imageElement = document.getElementById("panelImage");
+
+function updateImage(src) {
+  imageElement.src = src || "";
+  if (!src) {
+    imageElement.style.display = "none";  // 画像が無いなら非表示
+  } else {
+    imageElement.style.display = "block"; // 画像があれば表示
+  }
+}
   const stageButtons = document.getElementById("stageButtons");
   const answerArea = document.getElementById("answerArea");
   const answerInput = document.getElementById("answerInput");
