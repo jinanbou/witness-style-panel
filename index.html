@@ -34,6 +34,12 @@
       object-fit: contain;
     }
 
+    #stageButtons {
+      display: none;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
     .container {
       display: flex;
       gap: 20px;
@@ -66,9 +72,16 @@
 
   <h1>Witness Panels</h1>
 
-  <!-- 画像表示欄（パネルの上に移動） -->
+  <!-- 画像表示欄 -->
   <div id="image-viewer">
     <img id="panelImage" src="" alt="Panel image" />
+  </div>
+
+  <!-- ステージボタン表示 -->
+  <div id="stageButtons">
+    <button data-index="0">ステージ1</button>
+    <button data-index="1">ステージ2</button>
+    <button data-index="2">ステージ3</button>
   </div>
 
   <div class="container">
