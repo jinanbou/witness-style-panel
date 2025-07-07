@@ -187,6 +187,11 @@ document.addEventListener("DOMContentLoaded", () => {
       answerResult.textContent = "正解です！🎉";
       answerResult.style.color = "green";
 
+      if (filename === "panel3.png") {
+        // ✅ パネル3が正解されたら .container を表示
+        document.querySelector(".container").style.display = "flex";
+      }
+
       if (filename === "panel1.png") {
         panels[1].panel.classList.remove("locked-panel");
         stageUnlocked[0] = true;
@@ -306,6 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showStageButtons();
   });
 
+  // 初期化処理
   stageUnlocked = [true, false, false];
   updateStageButtonStates();
   drawAllGuides();
