@@ -140,26 +140,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-      if (panel.panel.classList.contains('locked-panel')) return;
+  if (panel.panel.classList.contains('locked-panel')) return;
 
-      const rect = panel.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const startPoint = panel.guidePoints[0];
+  const rect = panel.canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left;
+  const sy = e.clientY - rect.top;
+  const startPoint = panel.guidePoints[0];
 
-      const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
-      const threshold = 100; // 半径10px以内
+  const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
+  const threshold = 100; // 10px以内
 
-      if (distanceSquared > threshold) return;
+  if (distanceSquared > threshold) return;
 
-      activePanel = panel;
-      isDrawing = true;
-      lastDrawnPanelIndex = panel.index;
-      drawAllGuides();
+  // **ここから追加部分**
+  panels.forEach(p => {
+    if (p !== panel) {
+      p.drawn = false;
+      p.path = [];
+      clearCanvas(p);
+      drawGuide(p);
+    }
+  });
+  // **ここまで追加部分**
 
-      panel.path = [startPoint];
-      drawLine(panel);
-    });
+  activePanel = panel;
+  isDrawing = true;
+  lastDrawnPanelIndex = panel.index;
+  drawAllGuides();
+
+  panel.path = [startPoint];
+  drawLine(panel);
+});
 
     panel.canvas.addEventListener('pointermove', e => {
       if (!isDrawing || activePanel !== panel) return;
