@@ -1,3 +1,5 @@
+// witness-draw.js 全文（調整済み）
+
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -33,11 +35,13 @@ const panelImages = [
 
 const imageElement = document.getElementById("panelImage");
 
+// ガイド線＋起点の丸を描画
 function drawGuide(panel) {
   const ctx = panel.ctx;
   ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
   if (panel.panel.classList.contains('locked-panel')) return;
 
+  // ガイド線
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
@@ -50,22 +54,20 @@ function drawGuide(panel) {
   }
   ctx.stroke();
 
+  // 起点の丸
   const start = panel.guidePoints[0];
   const last = panel.path[panel.path.length - 1];
   const reachedEnd = isAtEnd(last || {}, panel.guidePoints);
-
-  // 起点の丸の色：描き終わったか、今描いているパネルなら青、それ以外は白
   ctx.fillStyle = (reachedEnd || (isDrawing && activePanel === panel)) ? '#3ad' : '#fff';
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
   ctx.fill();
 }
 
+// 線だけを描画（クリアはしない）
 function drawLine(panel) {
-  const ctx = panel.ctx;
-  ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-  drawGuide(panel);
   if (panel.path.length < 2) return;
+  const ctx = panel.ctx;
   ctx.strokeStyle = '#3ad';
   ctx.lineWidth = 6;
   ctx.lineCap = 'round';
@@ -102,24 +104,27 @@ function isAtEnd(point, guidePoints) {
   return point.x === end.x && point.y === end.y;
 }
 
+// 全パネルのガイド線＋起点の丸を描画（線は描かない）
 function drawAllGuides() {
   panels.forEach(drawGuide);
 }
 
+// 初期表示
 drawAllGuides();
 
-// パネル描画完了のイベント処理
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
     activePanel = panel;
     isDrawing = true;
 
-    // 描画開始時に全パネルのガイド再描画（丸の色リセットのため）
+    // 全パネルのガイド＋丸を再描画
     drawAllGuides();
 
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
+
+    // 対象パネルの線はまだなし（pathはstartのみ）
     drawLine(panel);
   });
 
@@ -132,6 +137,11 @@ panels.forEach(panel => {
     const last = panel.path[panel.path.length - 1];
     if (snap !== last) {
       panel.path.push(snap);
+
+      // 全パネルのガイド＋丸を再描画
+      drawAllGuides();
+
+      // 対象パネルの線だけ重ねて描画
       drawLine(panel);
     }
   });
@@ -143,20 +153,27 @@ panels.forEach(panel => {
     const last = panel.path[panel.path.length - 1];
     if (isAtEnd(last, panel.guidePoints)) {
       panel.drawn = true;
+
+      // 完成したパネルはまず全パネルのガイド＋丸を描き直し
+      drawAllGuides();
+
+      // 完成パネルの線を描画
       drawLine(panel);
+
+      // 画像表示
       imageElement.src = panelImages[panel.index];
 
       if (panel.index === 2) {
-        console.log("panel3 drawn event fired");
         window.dispatchEvent(new Event("panel3-drawn"));
       }
     } else {
       panel.path = [];
       panel.drawn = false;
+
+      // ガイド＋丸を全パネル描画
+      drawAllGuides();
+
       imageElement.src = "";
     }
-
-    // 描画終了時にも全パネルのガイド再描画（丸の色リセットのため）
-    drawAllGuides();
   });
 });
