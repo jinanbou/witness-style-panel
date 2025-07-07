@@ -15,17 +15,18 @@ export class StageController {
     this.backToPanel3Btn = document.getElementById("backToPanel3");
     this.imageElement = document.getElementById("panelImage");
 
-    // 🔽 パネル要素を取得
+    // ⬇ パネル要素を取得
     this.panels = Array.from(document.querySelectorAll('.panel'));
 
     this.init();
   }
 
   init() {
-    // 🔽 最初はパネルを非表示
+    // ⬇ 最初はパネルを非表示
     this.panels.forEach(panel => {
       panel.style.display = "none";
     });
+    document.querySelector('.container').style.display = "none";
 
     this.updateStageButtonStates();
     this.bindEvents();
@@ -95,13 +96,16 @@ export class StageController {
       this.stageUnlocked[1] = true;
       this.updateStageButtonStates();
 
-      // 🔽 パネルを表示
+      // ⬇ パネルを表示
       this.panels.forEach(panel => {
         panel.style.display = "block";
       });
+
+      // ⬇ containerを表示
+      document.querySelector('.container').style.display = "flex";
     }
 
-    // パネル/ステージ正解に応じた解除処理（拡張用）
+    // パネル/ステージ正解に応じた解除処理
     if (filename === "panel1.png") {
       this.stageUnlocked[0] = true;
     }
