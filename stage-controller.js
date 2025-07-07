@@ -1,11 +1,11 @@
-// stage-controller.js
 export class StageController {
   constructor(options) {
     this.panelImages = options.panelImages; // ["images/panel1.png", ...]
     this.stageImages = options.stageImages; // ["images/stage1.png", ...]
     this.correctAnswers = options.correctAnswers; // { "panel3.png":"helps", ... }
 
-    this.stageUnlocked = [false, false, true]; // panel3のみ最初からアンロック
+    // panel3のみ最初からアンロックに変更（末尾true）
+    this.stageUnlocked = [false, false, true];
     this.stageButtons = document.getElementById("stageButtons");
     this.answerArea = document.getElementById("answerArea");
     this.answerInput = document.getElementById("answerInput");
@@ -15,6 +15,10 @@ export class StageController {
     this.imageElement = document.getElementById("panelImage");
 
     this.panelContainer = document.querySelector(".container"); // ← パネル群を参照
+
+    if (!this.panelContainer) {
+      console.warn("⚠️ .container 要素が見つかりません。");
+    }
 
     this.init();
   }
@@ -62,8 +66,13 @@ export class StageController {
   checkAnswer() {
     const src = this.imageElement.src;
     const filename = src.split("/").pop();
+    console.log("[StageController] 現在表示中の画像:", src, "→ファイル名:", filename);
+
     const correct = this.correctAnswers[filename];
-    if (!correct) return;
+    if (!correct) {
+      console.warn("[StageController] 解答判定用の正解が見つかりません:", filename);
+      return;
+    }
 
     const input = this.answerInput.value.trim().toLowerCase();
     if (!input) {
@@ -89,22 +98,27 @@ export class StageController {
       this.stageUnlocked[1] = true;
       this.showDrawingPanels(); // ← ここで表示！
       updated = true;
+      console.log("[StageController] panel3正解でパネル1・2をアンロック＆表示");
     }
     if (filename === "panel1.png" && !this.stageUnlocked[0]) {
       this.stageUnlocked[0] = true;
       updated = true;
+      console.log("[StageController] panel1正解でアンロック");
     }
     if (filename === "panel2.png" && !this.stageUnlocked[1]) {
       this.stageUnlocked[1] = true;
       updated = true;
+      console.log("[StageController] panel2正解でアンロック");
     }
     if (filename === "stage1.png" && !this.stageUnlocked[1]) {
       this.stageUnlocked[1] = true;
       updated = true;
+      console.log("[StageController] stage1正解でアンロック");
     }
     if (filename === "stage2.png" && !this.stageUnlocked[2]) {
       this.stageUnlocked[2] = true;
       updated = true;
+      console.log("[StageController] stage2正解でアンロック");
     }
 
     if (updated) {
@@ -115,6 +129,11 @@ export class StageController {
   showPanel3State() {
     this.showImage(this.panelImages[2]);
     this.stageButtons.style.display = "flex";
+    this.answerArea.style.display = "flex";
+    if (this.panelContainer) {
+      // panel3は最初から表示しておく
+      this.panelContainer.style.display = "flex";
+    }
   }
 
   showStage(idx) {
@@ -137,12 +156,14 @@ export class StageController {
   hideDrawingPanels() {
     if (this.panelContainer) {
       this.panelContainer.style.display = "none";
+      console.log("[StageController] パネル群を非表示にしました");
     }
   }
 
   showDrawingPanels() {
     if (this.panelContainer) {
       this.panelContainer.style.display = "flex";
+      console.log("[StageController] パネル群を表示しました");
     }
   }
 }
