@@ -70,20 +70,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawLine(panel) {
-    if (panel.path.length < 2) return;
+  if (panel.path.length < 2) return;
 
-    const ctx = panel.ctx;
-    ctx.strokeStyle = '#3ad';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(panel.path[0].x, panel.path[0].y);
-    for (let i = 1; i < panel.path.length; i++) {
-      ctx.lineTo(panel.path[i].x, panel.path[i].y);
-    }
-    ctx.stroke();
+  const ctx = panel.ctx;
+  clearCanvas(panel);      // まず消す
+  drawGuide(panel);        // ガイドを再描画
+
+  ctx.strokeStyle = '#3ad';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(panel.path[0].x, panel.path[0].y);
+  for (let i = 1; i < panel.path.length; i++) {
+    ctx.lineTo(panel.path[i].x, panel.path[i].y);
   }
+  ctx.stroke();
+}
+
 
   function dist2(a, b) {
     const dx = a.x - b.x;
