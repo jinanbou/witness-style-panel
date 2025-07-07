@@ -76,7 +76,6 @@
       height: 100%;
       touch-action: none;
     }
-    /* 解答エリアのスタイル強化 */
     #answerArea {
       display: none;
       flex-direction: column;
@@ -112,6 +111,7 @@
       padding: 0.25em 0.25em;
       border-radius: 8px;
       text-align: center;
+      color: white;
     }
     #answerResult.correct {
       color: #fff;
@@ -126,7 +126,6 @@
   </style>
 </head>
 <body>
-
   <h1>Witness Panels</h1>
 
   <div id="image-viewer">
@@ -149,9 +148,21 @@
   <div class="container">
     <div class="panel"><canvas></canvas></div>
     <div class="panel locked-panel"><canvas></canvas></div>
-    <div class="panel"><canvas></canvas></div>
+    <div class="panel locked-panel"><canvas></canvas></div>
   </div>
 
   <script src="witness-draw.js"></script>
+  <script>
+    // draw.jsから利用する正答一覧とクリア済みセットをwindowに渡しておく
+    window.correctAnswers = {
+      "panel1.png": "visits",
+      "panel2.png": "comment",
+      "panel3.png": "helps",
+      "stage1.png": "burglary",
+      "stage2.png": "alley",
+      "stage3.png": "fetching"
+    };
+    window.completedImages = new Set();
+  </script>
 </body>
 </html>
