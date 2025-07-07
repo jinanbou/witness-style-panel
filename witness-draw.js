@@ -1,5 +1,3 @@
-// witness-draw.js
-
 const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
   const canvas = panel.querySelector('canvas');
   const ctx = canvas.getContext('2d');
@@ -33,7 +31,15 @@ const panelImages = [
   "panel3.png"
 ];
 
+const stageImages = [
+  "stage1.png",
+  "stage2.png",
+  "stage3.png"
+];
+
 const imageElement = document.getElementById("panelImage");
+const stageButtonsContainer = document.getElementById("stageButtons");
+const stageButtons = stageButtonsContainer.querySelectorAll("button");
 
 function drawGuide(panel) {
   const ctx = panel.ctx;
@@ -108,6 +114,7 @@ function drawAllGuides() {
 
 drawAllGuides();
 
+// すべてのパネルにイベントリスナーを登録
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
     if (panel.panel.classList.contains('locked-panel')) return;
@@ -121,8 +128,6 @@ panels.forEach(panel => {
     });
 
     const rect = panel.canvas.getBoundingClientRect();
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
     const startPoint = panel.guidePoints[0];
     panel.path = [startPoint];
     drawLine(panel);
@@ -149,23 +154,27 @@ panels.forEach(panel => {
       panel.drawn = true;
       drawLine(panel);
       imageElement.src = panelImages[panel.index];
+
+      // パネル3ならステージ選択ボタンを表示
+      if (panel.index === 2) {
+        stageButtonsContainer.style.display = "flex";
+      } else {
+        stageButtonsContainer.style.display = "none";
+      }
     } else {
       panel.path = [];
       panel.drawn = false;
       drawGuide(panel);
       imageElement.src = "";
+      stageButtonsContainer.style.display = "none";
     }
   });
 });
 
-// panel.canvas.addEventListener('pointerup' ... の中で
-if (isAtEnd(last, panel.guidePoints)) {
-  panel.drawn = true;
-  drawLine(panel);
-  imageElement.src = panelImages[panel.index];
-
-  // パネル3（index=2）ならイベント通知
-  if (panel.index === 2) {
-    window.dispatchEvent(new Event("panel3-drawn"));
-  }
-}
+// ステージボタンのクリック処理（stage1~3.pngを表示）
+stageButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const index = parseInt(button.getAttribute('data-index'));
+    imageElement.src = stageImages[index];
+  });
+});
