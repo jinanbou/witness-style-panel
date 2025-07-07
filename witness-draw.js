@@ -149,6 +149,7 @@ panels.forEach(panel => {
   panel.canvas.addEventListener('pointerup', () => {
     if (!isDrawing || activePanel !== panel) return;
     isDrawing = false;
+    let activePanel = null;
 
     const last = panel.path[panel.path.length - 1];
     if (isAtEnd(last, panel.guidePoints)) {
