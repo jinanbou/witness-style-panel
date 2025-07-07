@@ -70,24 +70,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawLine(panel) {
-  if (panel.path.length < 2) return;
+    if (panel.path.length < 2) return;
 
-  const ctx = panel.ctx;
-  clearCanvas(panel);      // まず消す
-  drawGuide(panel);        // ガイドを再描画
+    const ctx = panel.ctx;
+    // キャンバスクリア・ガイドはここでは行わない（drawAllGuidesでまとめてやる）
 
-  ctx.strokeStyle = '#3ad';
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.beginPath();
-  ctx.moveTo(panel.path[0].x, panel.path[0].y);
-  for (let i = 1; i < panel.path.length; i++) {
-    ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    ctx.strokeStyle = '#3ad';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(panel.path[0].x, panel.path[0].y);
+    for (let i = 1; i < panel.path.length; i++) {
+      ctx.lineTo(panel.path[i].x, panel.path[i].y);
+    }
+    ctx.stroke();
   }
-  ctx.stroke();
-}
-
 
   function dist2(a, b) {
     const dx = a.x - b.x;
@@ -121,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
     panels.forEach(panel => {
       clearCanvas(panel);
       drawGuide(panel);
-      if (panel.drawn && panel.path.length > 1) {
+      if (panel.path.length > 1) {
         drawLine(panel);
       }
     });
@@ -171,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
       drawAllGuides();
 
       panel.path = [startPoint];
-      drawLine(panel);
+      drawAllGuides();  // pathができたので全描画
     });
 
     panel.canvas.addEventListener('pointermove', e => {
@@ -183,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const last = panel.path[panel.path.length - 1];
       if (!pointsEqual(snap, last)) {
         panel.path.push(snap);
-        drawLine(panel);
+        drawAllGuides();
       }
     });
 
@@ -195,7 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
         panel.drawn = true;
         lastDrawnPanelIndex = panel.index;
 
-        drawLine(panel);
+        drawAllGuides();
 
         // 他パネルはガイドのみ描画
         panels.forEach(p => {
