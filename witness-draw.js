@@ -148,7 +148,6 @@ panels.forEach(panel => {
 
       // パネル3完了通知を発火
       if (panel.index === 2) {
-        console.log("panel3 drawn event fired");
         window.dispatchEvent(new Event("panel3-drawn"));
       }
     } else {
