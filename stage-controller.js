@@ -24,7 +24,6 @@ function showStageImage(index) {
 
 // パネル3完了通知を受け取り、ボタンを表示
 window.addEventListener("panel3-drawn", () => {
-  console.log("panel3-drawn event caught");
   showStageButtons();
 });
 
