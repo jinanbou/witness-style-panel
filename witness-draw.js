@@ -287,7 +287,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target.id === "backToPanel3") {
         imageElement.src = "panel3.png";
         updateAnswerArea(imageElement.src);
-        hideStageButtons();
         return;
       }
       const idx = parseInt(e.target.dataset.index);
