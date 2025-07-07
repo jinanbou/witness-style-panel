@@ -361,6 +361,21 @@
     answerResult.textContent = "正解です！🎉";
     answerResult.style.color = "lime";
 
+    // panel1 正解時：panel2解放 + 見た目も更新
+    if (filename === "panel1.png") {
+      stageUnlocked[0] = true;
+      stageUnlocked[1] = true;
+      panels[1].panel.classList.remove("locked-panel"); // ← 追加
+      updateStageButtonStates();
+    }
+
+    // panel2 正解時：ステージ2解放 + 見た目更新
+    if (filename === "panel2.png") {
+      stageUnlocked[1] = true;
+      updateStageButtonStates();
+    }
+
+    // panel3 正解時：パネル全表示 + stage1,2解放 + 見た目更新
     if (filename === "panel3.png") {
       container.style.visibility = "visible";
       stageUnlocked[0] = true;
@@ -368,22 +383,11 @@
       updateStageButtonStates();
     }
 
-    if (filename === "panel1.png") {
-      stageUnlocked[0] = true;
-      stageUnlocked[1] = true; // ✅ panel2 を同時開放
-      updateStageButtonStates();
-    }
-
-    if (filename === "panel2.png") {
-      stageUnlocked[1] = true;
-      updateStageButtonStates();
-    }
-
+    // ステージ解放
     if (filename === "stage1.png") {
       stageUnlocked[1] = true;
       updateStageButtonStates();
     }
-
     if (filename === "stage2.png") {
       stageUnlocked[2] = true;
       updateStageButtonStates();
