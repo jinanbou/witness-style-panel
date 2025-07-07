@@ -94,11 +94,12 @@
   </div>
 
   <!-- ステージボタン表示 -->
-  <div id="stageButtons">
-    <button data-index="0">ステージ1</button>
-    <button data-index="1">ステージ2</button>
-    <button data-index="2">ステージ3</button>
-  </div>
+  <div id="stageButtons" style="display:none; gap: 10px; margin-top: 10px; justify-content: center; flex-wrap: wrap;">
+  <button data-index="0">ステージ1</button>
+  <button data-index="1">ステージ2</button>
+  <button data-index="2">ステージ3</button>
+  <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
+</div>
 
   <div class="container">
     <div class="panel"><canvas></canvas></div>
