@@ -350,6 +350,15 @@ document.addEventListener("DOMContentLoaded", () => {
     p.panel.style.display = "none";
   });
 
+  // 起動時に panel3 の画像と解答欄を表示
+  updateAnswerArea("panel3.png");
+
+  // 起動時にステージ選択ボタンを表示
+  showStageButtons();
+
+  updateStageButtonStates();
+  drawAllGuides();
+
   answerButton.addEventListener("click", () => {
     const filename = imageElement.src.split("/").pop();
     const correct = correctAnswers[filename];
@@ -492,10 +501,6 @@ document.addEventListener("DOMContentLoaded", () => {
   updateStageButtonStates();
   drawAllGuides();
   window.drawAllGuides = drawAllGuides;
-
-  // 🔽 起動時に panel3 を表示（画像は表示するがパネルは非表示のまま）
-  updateAnswerArea("panel3.png");
-  // showStageButtons(); // 起動時はステージ選択ボタンは非表示
 });
   </script>
   <div id="pageMemo">210970</div>
