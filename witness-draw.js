@@ -23,6 +23,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
   });
 
+  // 最初にパネル1とパネル2をロック（完全非表示・非操作）
+  panels[0].panel.classList.add('locked-panel');
+  panels[1].panel.classList.add('locked-panel');
+  // パネル3だけはアンロック状態で開始
+  panels[2].panel.classList.remove('locked-panel');
+
   let activePanel = null;
   let isDrawing = false;
   let lastDrawnPanelIndex = -1;
@@ -46,7 +52,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "stage3.png": "fetching"
   };
 
-  let stageUnlocked = [true, false, false];
+  // パネル3解答前は panel1,2ロック、panel3だけアンロック
+  let stageUnlocked = [false, false, true];
 
   function updateStageButtonStates() {
     const buttons = stageButtons.querySelectorAll('button[data-index]');
@@ -82,12 +89,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function drawGuide(panel) {
-    if (panel.panel.classList.contains('locked-panel')) return;
+    if (panel.panel.classList.contains('locked-panel')) return; // ロック中は描画しない
     forceDrawGuide(panel);
   }
 
   function drawLine(panel) {
     if (panel.path.length < 2) return;
+    if (panel.panel.classList.contains('locked-panel')) return; // ロック中は描画しない
     const ctx = panel.ctx;
     clearCanvas(panel);
     drawGuide(panel);
@@ -187,16 +195,17 @@ document.addEventListener("DOMContentLoaded", () => {
       answerResult.textContent = "正解です！🎉";
       answerResult.style.color = "green";
 
-      if (filename === "panel1.png") {
+      if (filename === "panel3.png") {
+        // panel3正解時にpanel1とpanel2のロック解除
+        panels[0].panel.classList.remove("locked-panel");
+        panels[1].panel.classList.remove("locked-panel");
+        stageUnlocked = [true, true, true];
+      } else if (filename === "panel1.png") {
         panels[1].panel.classList.remove("locked-panel");
         stageUnlocked[0] = true;
-        clearCanvas(panels[1]);
-        forceDrawGuide(panels[1]);
       } else if (filename === "panel2.png") {
         panels[2].panel.classList.remove("locked-panel");
         stageUnlocked[1] = true;
-        clearCanvas(panels[2]);
-        forceDrawGuide(panels[2]);
       } else if (filename === "stage1.png") {
         stageUnlocked[1] = true;
       } else if (filename === "stage2.png") {
@@ -212,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-      if (panel.panel.classList.contains('locked-panel')) return;
+      if (panel.panel.classList.contains('locked-panel')) return; // ロック中は操作不可
 
       const rect = panel.canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
@@ -241,6 +250,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     panel.canvas.addEventListener('pointermove', e => {
       if (!isDrawing || activePanel !== panel) return;
+      if (panel.panel.classList.contains('locked-panel')) return; // ロック中は操作不可
+
       const rect = panel.canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
@@ -254,6 +265,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     panel.canvas.addEventListener('pointerup', () => {
       if (!isDrawing || activePanel !== panel) return;
+      if (panel.panel.classList.contains('locked-panel')) return; // ロック中は操作不可
+
       isDrawing = false;
       const last = panel.path[panel.path.length - 1];
       if (isAtEnd(last, panel.guidePoints)) {
@@ -306,12 +319,15 @@ document.addEventListener("DOMContentLoaded", () => {
     showStageButtons();
   });
 
-  stageUnlocked = [true, false, false];
+  // 初期状態は panel3のみアンロック
+  stageUnlocked = [false, false, true];
   updateStageButtonStates();
-  drawAllGuides();
-  window.drawAllGuides = drawAllGuides;
 
-  // 🔽 起動時に panel3 を表示
+  // 起動時は panel3 を表示し、ステージボタンも表示
   updateAnswerArea("panel3.png");
   showStageButtons();
+
+  drawAllGuides();
+
+  window.drawAllGuides = drawAllGuides;
 });
