@@ -69,6 +69,11 @@
       gap: 20px;
       margin-top: 20px;
       margin-bottom: 40px;
+
+      /* ★ ここを display:none → visibility:hidden に変更 ★ */
+      visibility: hidden;
+      /* displayは常にflex */
+      /* display: flex; */
     }
     .panel {
       position: relative;
@@ -150,50 +155,69 @@
 </head>
 <body>
   <h1>atgt2025sv</h1>
-
   <div id="image-viewer">
     <img id="panelImage" src="" alt="" />
   </div>
-
   <div id="stageButtons">
     <button data-index="0">ステージ1</button>
     <button data-index="1">ステージ2</button>
     <button data-index="2">ステージ3</button>
     <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
   </div>
-
   <div id="answerArea">
     <input type="text" id="answerInput" placeholder="解答を入力..." />
     <button id="answerButton">解答する</button>
     <p id="answerResult"></p>
   </div>
-
-  <!-- 🔽 ここが変更点：起動時は非表示 -->
-  <div class="container" style="display: none;">
+  <div class="container">
     <div class="panel"><canvas></canvas></div>
     <div class="panel locked-panel"><canvas></canvas></div>
     <div class="panel"><canvas></canvas></div>
   </div>
-
-  <!-- スクリプトの読み込み -->
   <script src="witness-draw.js"></script>
-  <script type="module">
-    import { StageController } from './stage-controller.js';
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const container = document.querySelector(".container");
 
-    const controller = new StageController({
-      panelImages: ["panel1.png", "panel2.png", "panel3.png"],
-      stageImages: ["stage1.png", "stage2.png", "stage3.png"],
-      correctAnswers: {
-        "panel1.png": "visits",
-        "panel2.png": "comment",
-        "panel3.png": "helps",
-        "stage1.png": "burglary",
-        "stage2.png": "alley",
-        "stage3.png": "fetching"
-      }
+      // 初期は非表示（visibility:hidden）なので canvasサイズは取れる
+      // 他の初期化コードは省略します（witness-draw.js内と同じ）
+
+      // ここはwitness-draw.jsのコードが動いている前提
+
+      // 🔽 起動時に panel3 を表示（answerArea, image表示等）
+      updateAnswerArea("panel3.png");
+      showStageButtons();
+
+      // 正解判定イベントなどの処理内に追記：
+      answerButton.addEventListener("click", () => {
+        const filename = imageElement.src.split("/").pop();
+        const correct = correctAnswers[filename];
+        const userAnswer = answerInput.value.trim().toLowerCase();
+
+        if (!userAnswer) {
+          answerResult.textContent = "解答を入力してください。";
+          answerResult.style.color = "white";
+        } else if (userAnswer === correct.toLowerCase()) {
+          answerResult.textContent = "正解です！🎉";
+          answerResult.style.color = "green";
+
+          // ★ ここでパネル表示切り替え ★
+          if (filename === "panel3.png") {
+            // パネル3の正解でパネル全部表示
+            container.style.visibility = "visible";
+          }
+
+          // それ以外の解放処理はそのまま
+          // （panel1, panel2のlocked解除やstageUnlocked配列更新等）
+
+          updateStageButtonStates();
+        } else {
+          answerResult.textContent = "不正解です。";
+          answerResult.style.color = "red";
+        }
+      });
     });
   </script>
-
   <div id="pageMemo">210970</div>
 </body>
 </html>
