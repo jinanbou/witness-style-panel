@@ -1,3 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Witness Panel System</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      user-select: none;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    #image-viewer {
+      margin-top: 20px;
+      width: 70vw;
+      height: 40vh;
+      background: #333;
+      border: 3px solid #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #image-viewer img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    #stageButtons {
+      display: none;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    #stageButtons button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #stageButtons button:hover {
+      background-color: #666;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .panel {
+      position: relative;
+      width: 25vw;
+      aspect-ratio: 4 / 1;
+      background-color: #ccc;
+      border: 2px solid #888;
+    }
+    .locked-panel {
+      background-color: black !important;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    /* 解答エリアのスタイル強化 */
+    #answerArea {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6em;
+      margin-top: 1em;
+      font-size: 1.4em;
+    }
+    #answerInput {
+      padding: 0.4em 0.4em;
+      font-size: 1em;
+      border-radius: 8px;
+      border: 2px solid #ccc;
+      width: 300px;
+      max-width: 80vw;
+    }
+    #answerButton {
+      padding: 0.4em 0.4em;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      background-color: #3ad;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #answerButton:hover {
+      background-color: #27a;
+    }
+    #answerResult {
+      font-size: 1em;
+      font-weight: bold;
+      padding: 0.25em 0.25em;
+      border-radius: 8px;
+      text-align: center;
+    }
+    #answerResult.correct {
+      color: #fff;
+      background-color: rgba(0, 128, 0, 0.6);
+      border: 2px solid #0f0;
+    }
+    #answerResult.incorrect {
+      color: #fff;
+      background-color: rgba(255, 0, 0, 0.6);
+      border: 2px solid #f00;
+    }
+    #answerResult.empty {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.2);
+      border: 2px solid #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Witness Panels</h1>
+
+  <div id="image-viewer">
+    <img id="panelImage" src="" alt="Panel image" />
+  </div>
+
+  <div id="stageButtons">
+    <button data-index="0">ステージ1</button>
+    <button data-index="1">ステージ2</button>
+    <button data-index="2">ステージ3</button>
+    <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
+  </div>
+
+  <div id="answerArea">
+    <input type="text" id="answerInput" placeholder="解答を入力..." />
+    <button id="answerButton">解答する</button>
+    <p id="answerResult"></p>
+  </div>
+
+  <div class="container">
+    <div class="panel"><canvas></canvas></div>
+    <div class="panel locked-panel"><canvas></canvas></div>
+    <div class="panel"><canvas></canvas></div>
+  </div>
+
+<script>
 document.addEventListener("DOMContentLoaded", () => {
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
     const canvas = panel.querySelector('canvas');
@@ -54,6 +214,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "stage2.png": "alley",
     "stage3.png": "fetching"
   };
+
+  // パネル2のDOM要素を取得しておく（ロック解除に使う）
+  const panel2Element = panels[1].panel;
 
   function clearCanvas(panel) {
     panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
@@ -155,11 +318,15 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateAnswerArea(imageSrc) {
     const filename = imageSrc.split("/").pop();
     if (correctAnswers[filename]) {
-      answerArea.style.display = "block";
+      answerArea.style.display = "flex";
       answerInput.value = "";
       answerResult.textContent = "";
+      answerResult.className = "";
     } else {
       answerArea.style.display = "none";
+      answerInput.value = "";
+      answerResult.textContent = "";
+      answerResult.className = "";
     }
   }
 
@@ -170,12 +337,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!userAnswer) {
       answerResult.textContent = "解答を入力してください。";
       answerResult.style.color = "white";
+      answerResult.className = "empty";
     } else if (userAnswer === correct.toLowerCase()) {
       answerResult.textContent = "正解です！🎉";
       answerResult.style.color = "white";
+      answerResult.className = "correct";
+
+      // panel1正解時にpanel2を解放
+      if (filename === "panel1.png") {
+        panel2Element.classList.remove("locked-panel");
+      }
+
     } else {
       answerResult.textContent = "不正解です。";
       answerResult.style.color = "white";
+      answerResult.className = "incorrect";
     }
   });
 
@@ -278,3 +454,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.drawAllGuides = drawAllGuides;
 });
+</script>
+
+</body>
+</html>
