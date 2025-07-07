@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return closest;
   }
 
-  // 追加：座標の等価判定関数
+  // 座標の等価判定関数
   function pointsEqual(p1, p2) {
     return p1.x === p2.x && p1.y === p2.y;
   }
@@ -140,61 +140,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
   panels.forEach(panel => {
     panel.canvas.addEventListener('pointerdown', e => {
-  if (panel.panel.classList.contains('locked-panel')) return;
+      if (panel.panel.classList.contains('locked-panel')) return;
 
-  const rect = panel.canvas.getBoundingClientRect();
-  const sx = e.clientX - rect.left;
-  const sy = e.clientY - rect.top;
-  const startPoint = panel.guidePoints[0];
+      const rect = panel.canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const startPoint = panel.guidePoints[0];
 
-  const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
-  const threshold = 100; // 10px以内
+      const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
+      const threshold = 100; // 10px以内
 
-  if (distanceSquared > threshold) return;
+      if (distanceSquared > threshold) return;
 
-  // **ここから追加部分**
-  panels.forEach(p => {
-    if (p !== panel) {
-      p.drawn = false;
-      p.path = [];
-      clearCanvas(p);
-      drawGuide(p);
-    }
-  });
-  // **ここまで追加部分**
+      // 他パネルのリセット
+      panels.forEach(p => {
+        if (p !== panel) {
+          p.drawn = false;
+          p.path = [];
+          clearCanvas(p);
+          drawGuide(p);
+        }
+      });
 
-  activePanel = panel;
-  isDrawing = true;
-  lastDrawnPanelIndex = panel.index;
-  drawAllGuides();
+      activePanel = panel;
+      isDrawing = true;
+      lastDrawnPanelIndex = panel.index;
+      drawAllGuides();
 
-  panel.path = [startPoint];
-  drawLine(panel);
-});
+      panel.path = [startPoint];
+      drawLine(panel);
+    });
 
-    panel.canvas.addEventListener('pointerdown', e => {
-  if (panel.panel.classList.contains('locked-panel')) return;
-
-  // 省略...
-
-  // 他パネルのリセット
-  panels.forEach(p => {
-    if (p !== panel) {
-      p.drawn = false;
-      p.path = [];
-      clearCanvas(p);
-      drawGuide(p);
-    }
-  });
-
-  activePanel = panel;
-  isDrawing = true;
-  lastDrawnPanelIndex = panel.index;
-  drawAllGuides();
-
-  panel.path = [startPoint];
-  drawLine(panel);
-});
+    panel.canvas.addEventListener('pointermove', e => {
+      if (!isDrawing || activePanel !== panel) return;
+      const rect = panel.canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const snap = snapToGuide(mx, my, panel.guidePoints);
+      const last = panel.path[panel.path.length - 1];
+      if (!pointsEqual(snap, last)) {
+        panel.path.push(snap);
+        drawLine(panel);
+      }
+    });
 
     panel.canvas.addEventListener('pointerup', () => {
       if (!isDrawing || activePanel !== panel) return;
