@@ -295,7 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 初期ステージ開放状態設定
   // panel3は常時開放なのでstage3は初期ロック
-  stageUnlocked = [false, false, false];
+  stageUnlocked = [true, false, false];
   updateStageButtonStates();
 
   window.drawAllGuides = drawAllGuides;
