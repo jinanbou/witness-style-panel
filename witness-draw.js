@@ -160,7 +160,6 @@ function updateImage(src) {
   }
 
   function showStageImage(index) {
-    imageElement.src = stageImages[index];
     updateAnswerArea(imageElement.src);
   }
 
