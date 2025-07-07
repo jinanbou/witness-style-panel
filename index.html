@@ -1,558 +1,178 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>atgt2025sv</title>
-  <style>
-    body {
-      margin: 0;
-      background: #222;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      user-select: none;
-    }
-    h1 {
-      margin-top: 20px;
-    }
-    #image-viewer {
-      margin-top: 20px;
-      width: 70vw;
-      height: 60vh;
-      background: #333;
-      border: 3px solid #888;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #image-viewer img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      display: none;
-    }
-    #stageButtons {
-      display: none;
-      gap: 10px;
-      margin-top: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    #stageButtons button {
-      padding: 10px 20px;
-      font-size: 1rem;
-      background-color: #444;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    #stageButtons button:hover:enabled {
-      background-color: #666;
-    }
-    #stageButtons button:disabled {
-      background-color: #222;
-      color: #888;
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-    .container {
-      display: flex;
-      gap: 20px;
-      margin-top: 20px;
-      margin-bottom: 40px;
-    }
-    .panel {
-      position: relative;
-      width: 25vw;
-      aspect-ratio: 4 / 1;
-      background-color: #ccc;
-      border: 2px solid #888;
-      margin-bottom: 40px;
-      display: none;
-    }
-    .locked-panel {
-      background-color: black !important;
-    }
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      touch-action: none;
-    }
-    #answerArea {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.6em;
-      margin-top: 1em;
-      font-size: 1.4em;
-    }
-    #answerInput {
-      padding: 0.4em 0.4em;
-      font-size: 1em;
-      border-radius: 8px;
-      border: 2px solid #ccc;
-      width: 300px;
-      max-width: 80vw;
-    }
-    #answerButton {
-      padding: 0.4em 0.4em;
-      font-size: 1em;
-      border: none;
-      border-radius: 8px;
-      background-color: #3ad;
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    #answerButton:hover {
-      background-color: #27a;
-    }
-    #answerResult {
-      font-size: 1em;
-      font-weight: bold;
-      padding: 0.25em 0.25em;
-      border-radius: 8px;
-      text-align: center;
-    }
-    #answerResult.correct {
-      color: #fff;
-      background-color: rgba(255, 255, 255, 0.1);
-      border: 2px solid #fff;
-    }
-    #answerResult.incorrect {
-      color: #fff;
-      background-color: rgba(255, 255, 255, 0.1);
-      border: 2px solid #fff;
-    }
-    #pageMemo {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      color: #888888;
-      font-family: "Times New Roman", serif;
-      font-size: 50px;
-      user-select: none;
-      pointer-events: none;
-      opacity: 0.6;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>パネル描画＋ステージ選択サンプル</title>
+<style>
+  body {
+    background: black;
+    color: white;
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+  }
+  #stageButtons {
+    margin: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  #stageButtons button {
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #stageButtons button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .locked-panel {
+    filter: brightness(0.3);
+    pointer-events: none;
+  }
+  #panels {
+    display: flex;
+    gap: 20px;
+    margin: 10px;
+  }
+  .panel {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    background: #222;
+    border: 1px solid white;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 300px;
+    height: 300px;
+  }
+  #answerArea {
+    margin: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  #answerInput {
+    font-size: 18px;
+    padding: 6px;
+    width: 200px;
+  }
+  #answerResult {
+    min-width: 120px;
+  }
+  #backToPanel3 {
+    margin-left: auto;
+    padding: 6px 12px;
+  }
+  #panelImage {
+    max-width: 100%;
+    height: auto;
+  }
+</style>
 </head>
 <body>
-  <h1>atgt2025sv</h1>
-  <div id="image-viewer">
-    <img id="panelImage" src="" alt="" />
+
+<h1>パネル描画＋ステージ選択サンプル</h1>
+
+<div id="panels">
+  <div id="panel1" class="panel locked-panel">
+    <img id="img1" src="images/panel1.png" alt="Panel 1" width="300" height="300" />
+    <canvas id="canvas1" width="300" height="300"></canvas>
   </div>
-  <div id="stageButtons">
-    <button data-index="0">ステージ1</button>
-    <button data-index="1">ステージ2</button>
-    <button data-index="2">ステージ3</button>
-    <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
+  <div id="panel2" class="panel locked-panel">
+    <img id="img2" src="images/panel2.png" alt="Panel 2" width="300" height="300" />
+    <canvas id="canvas2" width="300" height="300"></canvas>
   </div>
-  <div id="answerArea">
-    <input type="text" id="answerInput" placeholder="解答を入力..." />
-    <button id="answerButton">解答する</button>
-    <p id="answerResult"></p>
+  <div id="panel3" class="panel">
+    <img id="img3" src="images/panel3.png" alt="Panel 3" width="300" height="300" />
+    <canvas id="canvas3" width="300" height="300"></canvas>
   </div>
-  <div class="container">
-    <div class="panel"><canvas></canvas></div>
-    <div class="panel locked-panel"><canvas></canvas></div>
-    <div class="panel"><canvas></canvas></div>
-  </div>
-  <script>
-document.addEventListener("DOMContentLoaded", () => {
-  // --- パネル初期化 ---
-  const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+</div>
 
-    const marginX = 20;
-    const w = canvas.width - marginX * 2;
-    const h = canvas.height;
-    const amplitude = h / 16;
-    const centerY = h / 2;
+<div id="stageButtons">
+  <button data-index="0" disabled>ステージ1</button>
+  <button data-index="1" disabled>ステージ2</button>
+  <button data-index="2">ステージ3</button>
+  <button id="backToPanel3" style="display:none;">ステージセレクトに戻る</button>
+</div>
 
-    const guidePoints = [];
-    const step = w / 50;
-    for (let x = 0; x <= w; x += step) {
-      const theta = (x / w) * 2 * Math.PI;
-      const y = centerY - amplitude * Math.sin(theta);
-      guidePoints.push({ x: x + marginX, y });
-    }
+<div id="answerArea">
+  <input id="answerInput" type="text" placeholder="答えを入力してください" autocomplete="off" />
+  <button id="answerButton">解答する</button>
+  <span id="answerResult"></span>
+</div>
 
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
-  });
+<img id="panelImage" src="images/panel3.png" alt="現在のパネル/ステージ画像" style="display:none;" />
 
-  // --- 変数 ---
-  let activePanel = null;
-  let isDrawing = false;
-  let lastDrawnPanelIndex = -1;
+<script type="module" src="stage-controller.js"></script>
+<script type="module" src="witness-draw.js"></script>
+<script>
+  import { StageController } from './stage-controller.js';
+  import { WitnessDraw } from './witness-draw.js';
 
-  // 画像パス（imagesフォルダ内想定）
-  const panelImages = ["images/panel1.png", "images/panel2.png", "images/panel3.png"];
-  const stageImages = ["images/stage1.png", "images/stage2.png", "images/stage3.png"];
+  // パネルのDOM取得と描画に必要な情報
+  const panels = [
+    {
+      panel: document.getElementById('panel1'),
+      canvas: document.getElementById('canvas1'),
+      ctx: document.getElementById('canvas1').getContext('2d'),
+      index: 0,
+      guidePoints: [ {x:20,y:20}, {x:150,y:150}, {x:280,y:280} ], // 仮のガイドポイント
+      path: [],
+      drawn: false,
+    },
+    {
+      panel: document.getElementById('panel2'),
+      canvas: document.getElementById('canvas2'),
+      ctx: document.getElementById('canvas2').getContext('2d'),
+      index: 1,
+      guidePoints: [ {x:30,y:280}, {x:150,y:150}, {x:280,y:20} ], // 仮のガイドポイント
+      path: [],
+      drawn: false,
+    },
+    {
+      panel: document.getElementById('panel3'),
+      canvas: document.getElementById('canvas3'),
+      ctx: document.getElementById('canvas3').getContext('2d'),
+      index: 2,
+      guidePoints: [ {x:10,y:150}, {x:290,y:150} ], // 仮のガイドポイント
+      path: [],
+      drawn: false,
+    },
+  ];
 
-  // DOM要素取得
-  const imageElement = document.getElementById("panelImage");
-  const stageButtons = document.getElementById("stageButtons");
-  const answerArea = document.getElementById("answerArea");
-  const answerInput = document.getElementById("answerInput");
-  const answerButton = document.getElementById("answerButton");
-  const answerResult = document.getElementById("answerResult");
-  const backToPanel3Btn = document.getElementById("backToPanel3");
-
-  // 正解リスト
+  const stageImages = [
+    "images/stage1.png",
+    "images/stage2.png",
+    "images/stage3.png"
+  ];
+  const panelImages = [
+    "images/panel1.png",
+    "images/panel2.png",
+    "images/panel3.png"
+  ];
   const correctAnswers = {
-    "panel1.png": "visits",
-    "panel2.png": "comment",
-    "panel3.png": "helps",
-    "stage1.png": "burglary",
-    "stage2.png": "alley",
-    "stage3.png": "fetching"
+    "panel1.png": "answer1",
+    "panel2.png": "answer2",
+    "panel3.png": "answer3",
+    "stage1.png": "stageanswer1",
+    "stage2.png": "stageanswer2",
+    "stage3.png": "stageanswer3"
   };
 
-  // ステージアンロック状態（panel3は最初からOK）
-  let stageUnlocked = [false, false, true];
-
-  // --- ユーティリティ関数 ---
-  function dist2(a, b) {
-    const dx = a.x - b.x;
-    const dy = a.y - b.y;
-    return dx * dx + dy * dy;
-  }
-
-  function pointsEqual(p1, p2) {
-    return p1.x === p2.x && p1.y === p2.y;
-  }
-
-  function snapToGuide(x, y, guidePoints) {
-    let minDist = Infinity;
-    let closest = guidePoints[0];
-    for (const pt of guidePoints) {
-      const d = dist2(pt, { x, y });
-      if (d < minDist) {
-        minDist = d;
-        closest = pt;
-      }
-    }
-    return closest;
-  }
-
-  function isAtEnd(point, guidePoints) {
-    const end = guidePoints[guidePoints.length - 1];
-    return point.x === end.x && point.y === end.y;
-  }
-
-  function clearCanvas(panel) {
-    panel.ctx.clearRect(0, 0, panel.canvas.width, panel.canvas.height);
-  }
-
-  // ガイド線（白線）を描く
-  function forceDrawGuide(panel) {
-    if (panel.panel.style.display === "none") return;
-    const ctx = panel.ctx;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    const pts = panel.guidePoints;
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) {
-      ctx.lineTo(pts[i].x, pts[i].y);
-    }
-    ctx.stroke();
-
-    // 始点の青丸（最後に描いたパネルなら青、それ以外は白）
-    const start = pts[0];
-    ctx.fillStyle = (panel.index === lastDrawnPanelIndex) ? '#3ad' : '#fff';
-    ctx.beginPath();
-    ctx.arc(start.x, start.y, 6, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-
-  function drawGuide(panel) {
-    if (panel.panel.style.display === "none") return;
-    forceDrawGuide(panel);
-  }
-
-  // 描画した線（青線）を描く
-  function drawLine(panel) {
-    if (panel.panel.style.display === "none") return;
-    if (panel.path.length < 2) return;
-    const ctx = panel.ctx;
-    clearCanvas(panel);
-    drawGuide(panel);
-    ctx.strokeStyle = '#3ad';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(panel.path[0].x, panel.path[0].y);
-    for (let i = 1; i < panel.path.length; i++) {
-      ctx.lineTo(panel.path[i].x, panel.path[i].y);
-    }
-    ctx.stroke();
-  }
-
-  // すべての表示中パネルにガイド線や描画線を描く
-  function drawAllGuides() {
-    panels.forEach(panel => {
-      if (panel.panel.style.display === "none") return;
-      clearCanvas(panel);
-      drawGuide(panel);
-      if (panel.drawn && panel.path.length > 1) {
-        drawLine(panel);
-      }
-    });
-  }
-
-  // パネル1,2をアンロック＆表示する
-  function unlockPanels1and2() {
-    [0, 1].forEach(i => {
-      panels[i].panel.style.display = "block";
-      panels[i].panel.classList.remove("locked-panel");
-    });
-  }
-
-  // ステージボタンの有効無効を更新
-  function updateStageButtonStates() {
-    const buttons = stageButtons.querySelectorAll('button[data-index]');
-    buttons.forEach(btn => {
-      const idx = parseInt(btn.dataset.index);
-      btn.disabled = !stageUnlocked[idx];
-    });
-  }
-
-  // ステージ選択ボタンを表示
-  function showStageButtons() {
-    stageButtons.style.display = 'flex';
-    updateStageButtonStates();
-  }
-
-  // ステージ選択ボタンを非表示
-  function hideStageButtons() {
-    stageButtons.style.display = 'none';
-  }
-
-  // 画像表示切り替えと解答欄表示切り替え
-  function updateImage(src) {
-    imageElement.src = src || "";
-    if (!src) {
-      imageElement.style.display = "none";
-    } else {
-      imageElement.style.display = "block";
-    }
-  }
-
-  function updateAnswerArea(imageSrc) {
-    updateImage(imageSrc);
-    const filename = imageSrc.split("/").pop();
-    if (correctAnswers[filename]) {
-      answerArea.style.display = "flex";
-      answerInput.value = "";
-      answerResult.textContent = "";
-    } else {
-      answerArea.style.display = "none";
-    }
-  }
-
-  // ステージ画像を表示し解答欄をセット
-  function showStageImage(index) {
-    updateAnswerArea(stageImages[index]);
-  }
-
-  // --- イベント設定 ---
-
-  // 解答ボタン押下
-  answerButton.addEventListener("click", () => {
-    const filename = imageElement.src.split("/").pop();
-    const correct = correctAnswers[filename];
-    const userAnswer = answerInput.value.trim().toLowerCase();
-
-    if (!userAnswer) {
-      answerResult.textContent = "解答を入力してください。";
-      answerResult.style.color = "white";
-      return;
-    }
-    if (userAnswer === correct.toLowerCase()) {
-      answerResult.textContent = "正解です！🎉";
-      answerResult.style.color = "green";
-
-      if (filename === "panel3.png") {
-        unlockPanels1and2();
-        stageUnlocked = [true, true, true];
-        updateStageButtonStates();
-      } else if (filename === "panel1.png") {
-        stageUnlocked[0] = true;
-        updateStageButtonStates();
-      } else if (filename === "panel2.png") {
-        stageUnlocked[1] = true;
-        updateStageButtonStates();
-      } else if (filename === "stage1.png") {
-        stageUnlocked[1] = true;
-        updateStageButtonStates();
-      } else if (filename === "stage2.png") {
-        stageUnlocked[2] = true;
-        updateStageButtonStates();
-      }
-    } else {
-      answerResult.textContent = "不正解です。";
-      answerResult.style.color = "red";
-    }
+  // 初期化
+  const stageController = new StageController({
+    panelImages,
+    stageImages,
+    correctAnswers
   });
 
-  // Enterキーで解答送信
-  answerInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-      answerButton.click();
-    }
-  });
+  const witnessDraw = new WitnessDraw(panels);
 
-  // パネルの描画操作
-  panels.forEach(panel => {
-    panel.canvas.addEventListener('pointerdown', e => {
-      if (panel.panel.style.display === "none") return;
-      if (panel.panel.classList.contains('locked-panel')) return;
+</script>
 
-      const rect = panel.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const startPoint = panel.guidePoints[0];
-      const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
-      if (distanceSquared > 100) return;
-
-      // 他パネルの描画リセット
-      panels.forEach(p => {
-        if (p !== panel) {
-          p.drawn = false;
-          p.path = [];
-          clearCanvas(p);
-          drawGuide(p);
-        }
-      });
-
-      activePanel = panel;
-      isDrawing = true;
-      lastDrawnPanelIndex = panel.index;
-      drawAllGuides();
-
-      panel.path = [startPoint];
-      drawLine(panel);
-    });
-
-    panel.canvas.addEventListener('pointermove', e => {
-      if (!isDrawing || activePanel !== panel) return;
-      if (panel.panel.style.display === "none") return;
-      if (panel.panel.classList.contains('locked-panel')) return;
-
-      const rect = panel.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const snap = snapToGuide(mx, my, panel.guidePoints);
-      const last = panel.path[panel.path.length - 1];
-      if (!pointsEqual(snap, last)) {
-        panel.path.push(snap);
-        drawLine(panel);
-      }
-    });
-
-    panel.canvas.addEventListener('pointerup', () => {
-      if (!isDrawing || activePanel !== panel) return;
-      if (panel.panel.style.display === "none") return;
-      if (panel.panel.classList.contains('locked-panel')) return;
-
-      isDrawing = false;
-      const last = panel.path[panel.path.length - 1];
-      if (isAtEnd(last, panel.guidePoints)) {
-        panel.drawn = true;
-        lastDrawnPanelIndex = panel.index;
-        drawLine(panel);
-
-        panels.forEach(p => {
-          if (p !== panel) {
-            clearCanvas(p);
-            drawGuide(p);
-          }
-        });
-
-        updateAnswerArea(panelImages[panel.index]);
-
-        if (panel.index === 2) {
-          window.dispatchEvent(new Event("panel3-drawn"));
-        } else {
-          hideStageButtons();
-        }
-      } else {
-        // 最後まで引けなければリセット
-        panel.path = [];
-        panel.drawn = false;
-        lastDrawnPanelIndex = -1;
-        drawAllGuides();
-        updateImage("");
-        updateAnswerArea("");
-        hideStageButtons();
-      }
-    });
-  });
-
-  // ステージ選択ボタン押下処理
-  stageButtons.addEventListener('click', e => {
-    let target = e.target;
-    while (target && target !== stageButtons && target.tagName !== 'BUTTON') {
-      target = target.parentElement;
-    }
-    if (!target || target === stageButtons) return;
-
-    if (target.id === "backToPanel3") {
-      updateAnswerArea("images/panel3.png");
-      panels.forEach(p => {
-        p.panel.style.display = "none";
-      });
-      panels[2].panel.style.display = "block";
-      panels[0].panel.classList.add("locked-panel");
-      panels[1].panel.classList.add("locked-panel");
-      panels[2].panel.classList.remove("locked-panel");
-
-      lastDrawnPanelIndex = 2;
-      drawAllGuides();
-      showStageButtons();
-      return;
-    }
-
-    const idx = parseInt(target.dataset.index);
-    if (isNaN(idx)) return;
-    if (!stageUnlocked[idx]) return;
-
-    updateAnswerArea(stageImages[idx]);
-  });
-
-  // panel3描画完了イベントでステージ選択を表示
-  window.addEventListener("panel3-drawn", () => {
-    showStageButtons();
-  });
-
-  // --- 初期表示設定 ---
-  panels.forEach(p => (p.panel.style.display = "none"));
-  panels[2].panel.style.display = "block";
-  panels[0].panel.classList.add("locked-panel");
-  panels[1].panel.classList.add("locked-panel");
-
-  updateAnswerArea(panelImages[2]);
-  showStageButtons();
-  updateStageButtonStates();
-  drawAllGuides();
-});
-  </script>
 </body>
 </html>
