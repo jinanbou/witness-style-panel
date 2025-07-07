@@ -169,12 +169,6 @@ panels.forEach(panel => {
       drawLine(panel);
       imageElement.src = panelImages[panel.index];
 
-      panels.forEach(p => {
-        if (p.index !== 2) {
-          p.drawn = false;
-        }
-      });
-
       if (panel.index === 2) {
         console.log("panel3 drawn event fired");
         window.dispatchEvent(new Event("panel3-drawn"));
@@ -182,6 +176,7 @@ panels.forEach(panel => {
         console.log("non-panel3 drawn, hiding buttons");
         hideStageButtons();
       }
+
     } else {
       panel.path = [];
       panel.drawn = false;
