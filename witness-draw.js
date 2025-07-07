@@ -169,13 +169,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const userAnswer = answerInput.value.trim().toLowerCase();
     if (!userAnswer) {
       answerResult.textContent = "解答を入力してください。";
-      answerResult.style.color = "black";
+      answerResult.style.color = "white";
     } else if (userAnswer === correct.toLowerCase()) {
       answerResult.textContent = "正解です！🎉";
-      answerResult.style.color = "green";
+      answerResult.style.color = "white";
     } else {
       answerResult.textContent = "不正解です。";
-      answerResult.style.color = "red";
+      answerResult.style.color = "white";
     }
   });
 
