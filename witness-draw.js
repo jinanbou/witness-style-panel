@@ -1,28 +1,55 @@
 document.addEventListener("DOMContentLoaded", () => {
   const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) => {
-    const canvas = panel.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-    const rect = panel.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-
-    const marginX = 20;
-    const w = canvas.width - marginX * 2;
-    const h = canvas.height;
-    const amplitude = h / 16;
-    const centerY = h / 2;
-
-    const guidePoints = [];
-    const step = w / 50;
-    for (let x = 0; x <= w; x += step) {
-      const theta = (x / w) * 2 * Math.PI;
-      const y = centerY - amplitude * Math.sin(theta);
-      guidePoints.push({ x: x + marginX, y });
-    }
-
-    return { panel, canvas, ctx, guidePoints, path: [], drawn: false, index: i };
+    // ...（既存の初期化処理はそのまま）
   });
 
+  const imageElement = document.getElementById("panelImage");
+  const answerArea = document.getElementById("answerArea");
+  const answerInput = document.getElementById("answerInput");
+  const answerResult = document.getElementById("answerResult");
+
+  const correctAnswers = {
+    "panel1.png": "visits",
+    "panel2.png": "comment",
+    "panel3.png": "helps",
+    "stage1.png": "burglary",
+    "stage2.png": "alley",
+    "stage3.png": "fetching"
+  };
+
+  function updateImage(src) {
+    imageElement.src = src || "";
+    if (!src) {
+      imageElement.style.display = "none"; // 画像がない場合は非表示
+    } else {
+      imageElement.style.display = "block"; // 画像がある場合は表示
+    }
+  }
+
+  function updateAnswerArea(imageSrc) {
+    updateImage(imageSrc);
+    const filename = imageSrc.split("/").pop();
+    if (correctAnswers[filename]) {
+      answerArea.style.display = "flex";
+      answerInput.value = "";
+      answerResult.textContent = "";
+    } else {
+      answerArea.style.display = "none";
+    }
+  }
+
+  // 例：パネル描画完了時などに画像差し替え
+  panels.forEach(panel => {
+    // ...（イベントリスナー内の一部）
+    // 画像切り替え例
+    // updateAnswerArea(panelImages[panel.index]);
+  });
+
+  // 他の既存ロジックはそのまま
+
+  // 最初は画像なしで非表示にしたい場合
+  updateImage("");
+});
   let activePanel = null;
   let isDrawing = false;
   let lastDrawnPanelIndex = -1;
