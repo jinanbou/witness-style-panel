@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const answerInput = document.getElementById("answerInput");
   const answerButton = document.getElementById("answerButton");
   const answerResult = document.getElementById("answerResult");
+  const backToPanel3Button = document.getElementById("backToPanel3");
 
   const correctAnswers = {
     "panel1.png": "visits",
@@ -287,6 +288,12 @@ document.addEventListener("DOMContentLoaded", () => {
         showStageImage(idx);
       }
     }
+  });
+
+  backToPanel3Button.addEventListener("click", () => {
+    showStageButtons();
+    imageElement.src = "";
+    answerArea.style.display = "none";
   });
 
   window.addEventListener("panel3-drawn", () => {
