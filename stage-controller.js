@@ -1,13 +1,12 @@
-import { resizeAndRedrawPanels } from './witness-draw.js';
 
+// stage-controller.js
 export class StageController {
   constructor(options) {
     this.panelImages = options.panelImages; // ["images/panel1.png", ...]
     this.stageImages = options.stageImages; // ["images/stage1.png", ...]
-    this.correctAnswers = options.correctAnswers; // { "panel3.png": "helps", ... }
+    this.correctAnswers = options.correctAnswers; // { "panel3.png":"helps", ... }
 
     this.stageUnlocked = [false, false, true]; // panel3のみ最初からアンロック
-
     this.stageButtons = document.getElementById("stageButtons");
     this.answerArea = document.getElementById("answerArea");
     this.answerInput = document.getElementById("answerInput");
@@ -16,17 +15,10 @@ export class StageController {
     this.backToPanel3Btn = document.getElementById("backToPanel3");
     this.imageElement = document.getElementById("panelImage");
 
-    this.panels = Array.from(document.querySelectorAll('.panel'));
-
     this.init();
   }
 
   init() {
-    // パネルは初期非表示
-    this.panels.forEach(panel => {
-      panel.style.display = "none";
-    });
-
     this.updateStageButtonStates();
     this.bindEvents();
     this.showPanel3State();
@@ -77,7 +69,6 @@ export class StageController {
       this.answerResult.style.color = "white";
       return;
     }
-
     if (input === correct.toLowerCase()) {
       this.answerResult.textContent = "正解です！🎉";
       this.answerResult.style.color = "lime";
@@ -89,36 +80,30 @@ export class StageController {
   }
 
   handleCorrectAnswer(filename) {
-    // panel3 正解 → パネル表示＋stage1,2 解放
+    // パネル3正解でパネル1,2解放
     if (filename === "panel3.png") {
       this.stageUnlocked[0] = true;
       this.stageUnlocked[1] = true;
       this.updateStageButtonStates();
-
-      // パネル表示
-      this.panels.forEach(panel => {
-        panel.style.display = "block";
-      });
-
-      // 一呼吸置いてリサイズ・描画
-      resizeAndRedrawPanels();
+      // 他のUI操作あればここで
     }
-
-    // 拡張用ロック解除
+    // パネル1,2やステージ解答に応じてロック解除も可
     if (filename === "panel1.png") {
       this.stageUnlocked[0] = true;
+      this.updateStageButtonStates();
     }
     if (filename === "panel2.png") {
       this.stageUnlocked[1] = true;
+      this.updateStageButtonStates();
     }
     if (filename === "stage1.png") {
       this.stageUnlocked[1] = true;
+      this.updateStageButtonStates();
     }
     if (filename === "stage2.png") {
       this.stageUnlocked[2] = true;
+      this.updateStageButtonStates();
     }
-
-    this.updateStageButtonStates();
   }
 
   showPanel3State() {
