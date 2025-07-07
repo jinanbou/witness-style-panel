@@ -126,27 +126,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   panels.forEach(panel => {
-    panel.canvas.addEventListener('pointerdown', e => {
-      if (panel.panel.classList.contains('locked-panel')) return;
+    panel.canvas.addEventListener('pointerup', () => {
+  if (!isDrawing || activePanel !== panel) return;
+  isDrawing = false;
+  const last = panel.path[panel.path.length - 1];
+  if (isAtEnd(last, panel.guidePoints)) {
+    panel.drawn = true;
+    lastDrawnPanelIndex = panel.index;
+    
+    // 線＋ガイドを描く
+    drawLine(panel);
 
-      const rect = panel.canvas.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const startPoint = panel.guidePoints[0];
-
-      const distanceSquared = dist2({ x: sx, y: sy }, startPoint);
-      const threshold = 100;
-
-      if (distanceSquared > threshold) return;
-
-      activePanel = panel;
-      isDrawing = true;
-      lastDrawnPanelIndex = panel.index;
-      drawAllGuides();
-
-      panel.path = [startPoint];
-      drawLine(panel);
+    // 他パネルはガイドのみ描く（線は消さない）
+    panels.forEach(p => {
+      if (p !== panel) drawGuide(p);
     });
+
+    imageElement.src = panelImages[panel.index];
+
+    if (panel.index === 2) {
+      window.dispatchEvent(new Event("panel3-drawn"));
+    } else {
+      hideStageButtons();
+    }
+  } else {
+    panel.path = [];
+    panel.drawn = false;
+    lastDrawnPanelIndex = -1;
+
+    // 全パネルガイドのみ再描画
+    drawAllGuides();
+
+    imageElement.src = "";
+    hideStageButtons();
+  }
+});
 
     panel.canvas.addEventListener('pointermove', e => {
       if (!isDrawing || activePanel !== panel) return;
