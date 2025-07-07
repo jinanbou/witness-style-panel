@@ -287,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target.id === "backToPanel3") {
         imageElement.src = "panel3.png";
         updateAnswerArea(imageElement.src);
-        showStageButtons(); // 修正点：戻る時に再表示
+        window.dispatchEvent(new Event("panel3-drawn")); // ★ イベント再発火でステージボタン表示
         return;
       }
       const idx = parseInt(e.target.dataset.index);
@@ -303,5 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   stageUnlocked = [true, false, false];
   updateStageButtonStates();
+
   window.drawAllGuides = drawAllGuides;
 });
