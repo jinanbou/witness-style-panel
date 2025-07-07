@@ -172,18 +172,29 @@ document.addEventListener("DOMContentLoaded", () => {
   drawLine(panel);
 });
 
-    panel.canvas.addEventListener('pointermove', e => {
-      if (!isDrawing || activePanel !== panel) return;
-      const rect = panel.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const snap = snapToGuide(mx, my, panel.guidePoints);
-      const last = panel.path[panel.path.length - 1];
-      if (!pointsEqual(snap, last)) {
-        panel.path.push(snap);
-        drawLine(panel);
-      }
-    });
+    panel.canvas.addEventListener('pointerdown', e => {
+  if (panel.panel.classList.contains('locked-panel')) return;
+
+  // 省略...
+
+  // 他パネルのリセット
+  panels.forEach(p => {
+    if (p !== panel) {
+      p.drawn = false;
+      p.path = [];
+      clearCanvas(p);
+      drawGuide(p);
+    }
+  });
+
+  activePanel = panel;
+  isDrawing = true;
+  lastDrawnPanelIndex = panel.index;
+  drawAllGuides();
+
+  panel.path = [startPoint];
+  drawLine(panel);
+});
 
     panel.canvas.addEventListener('pointerup', () => {
       if (!isDrawing || activePanel !== panel) return;
