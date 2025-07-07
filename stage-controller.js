@@ -1,145 +1,191 @@
-// stage-controller.js
-export class StageController {
-  constructor(options) {
-    this.panelImages = options.panelImages; // ["images/panel1.png", ...]
-    this.stageImages = options.stageImages; // ["images/stage1.png", ...]
-    this.correctAnswers = options.correctAnswers; // { "panel3.png":"helps", ... }
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>atgt2025sv</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      user-select: none;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    #image-viewer {
+      margin-top: 20px;
+      width: 70vw;
+      height: 60vh;
+      background: #333;
+      border: 3px solid #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #image-viewer img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+    #stageButtons {
+      display: none;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      min-height: 50px;
+      padding: 10px 0;
+      flex-shrink: 0;
+    }
+    #stageButtons button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #stageButtons button:hover:enabled {
+      background-color: #666;
+    }
+    #stageButtons button:disabled {
+      background-color: #222;
+      color: #888;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+      margin-bottom: 40px;
+    }
+    .panel {
+      position: relative;
+      width: 25vw;
+      aspect-ratio: 4 / 1;
+      background-color: #ccc;
+      border: 2px solid #888;
+      margin-bottom: 40px;
+    }
+    .locked-panel {
+      background-color: black !important;
+    }
+    .hidden-panel {
+      display: none;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    #answerArea {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6em;
+      margin-top: 1em;
+      font-size: 1.4em;
+    }
+    #answerInput {
+      padding: 0.4em 0.4em;
+      font-size: 1em;
+      border-radius: 8px;
+      border: 2px solid #ccc;
+      width: 300px;
+      max-width: 80vw;
+    }
+    #answerButton {
+      padding: 0.4em 0.4em;
+      font-size: 1em;
+      border: none;
+      border-radius: 8px;
+      background-color: #3ad;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #answerButton:hover {
+      background-color: #27a;
+    }
+    #answerResult {
+      font-size: 1em;
+      font-weight: bold;
+      padding: 0.25em 0.25em;
+      border-radius: 8px;
+      text-align: center;
+    }
+    #answerResult.correct,
+    #answerResult.incorrect {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 2px solid #fff;
+    }
+    #pageMemo {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      color: #888888;
+      font-family: "Times New Roman", serif;
+      font-size: 50px;
+      user-select: none;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>atgt2025sv</h1>
+  <div id="image-viewer">
+    <img id="panelImage" src="" alt="" />
+  </div>
+  <div id="stageButtons">
+    <button data-index="0">ステージ1</button>
+    <button data-index="1">ステージ2</button>
+    <button data-index="2">ステージ3</button>
+    <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
+  </div>
+  <div id="answerArea">
+    <input type="text" id="answerInput" placeholder="解答を入力..." />
+    <button id="answerButton">解答する</button>
+    <p id="answerResult"></p>
+  </div>
+  <div class="container">
+    <div class="panel hidden-panel"><canvas></canvas></div>
+    <div class="panel hidden-panel"><canvas></canvas></div>
+    <div class="panel"><canvas></canvas></div>
+  </div>
+  <script src="witness-draw.js"></script>
+  <script type="module">
+    import { StageController } from "./stage-controller.js";
 
-    this.stageUnlocked = [false, false, true]; // panel3のみ最初からアンロック
-    this.stageButtons = document.getElementById("stageButtons");
-    this.answerArea = document.getElementById("answerArea");
-    this.answerInput = document.getElementById("answerInput");
-    this.answerButton = document.getElementById("answerButton");
-    this.answerResult = document.getElementById("answerResult");
-    this.backToPanel3Btn = document.getElementById("backToPanel3");
-    this.imageElement = document.getElementById("panelImage");
-
-    this.init();
-  }
-
-  init() {
-    this.hideAllPanels(); // 初期化時にすべてのパネルを非表示に
-    this.updateStageButtonStates();
-    this.bindEvents();
-    this.showPanel3State();
-  }
-
-  bindEvents() {
-    this.answerButton.addEventListener("click", () => this.checkAnswer());
-    this.answerInput.addEventListener("keydown", e => {
-      if (e.key === "Enter") this.checkAnswer();
+    const panels = Array.from(document.querySelectorAll('.panel'));
+    const controller = new StageController({
+      panelImages: ["panel1.png", "panel2.png", "panel3.png"],
+      stageImages: ["stage1.png", "stage2.png", "stage3.png"],
+      correctAnswers: {
+        "panel1.png": "visits",
+        "panel2.png": "comment",
+        "panel3.png": "helps",
+        "stage1.png": "burglary",
+        "stage2.png": "alley",
+        "stage3.png": "fetching"
+      },
+      panels
     });
-
-    this.stageButtons.addEventListener("click", e => {
-      const btn = e.target.closest("button");
-      if (!btn) return;
-
-      if (btn.id === "backToPanel3") {
-        this.showPanel3State();
-      } else {
-        const idx = parseInt(btn.dataset.index);
-        if (isNaN(idx)) return;
-        if (!this.stageUnlocked[idx]) return;
-        this.showStage(idx);
-      }
-    });
-
-    window.addEventListener("panel3-drawn", () => {
-      this.unlockStagesAfterPanel3();
-    });
-  }
-
-  updateStageButtonStates() {
-    const buttons = this.stageButtons.querySelectorAll('button[data-index]');
-    buttons.forEach(btn => {
-      const idx = parseInt(btn.dataset.index);
-      btn.disabled = !this.stageUnlocked[idx];
-    });
-  }
-
-  checkAnswer() {
-    const src = this.imageElement.src;
-    const filename = src.split("/").pop();
-    const correct = this.correctAnswers[filename];
-    if (!correct) return;
-
-    const input = this.answerInput.value.trim().toLowerCase();
-    if (!input) {
-      this.answerResult.textContent = "解答を入力してください。";
-      this.answerResult.style.color = "white";
-      return;
-    }
-    if (input === correct.toLowerCase()) {
-      this.answerResult.textContent = "正解です！🎉";
-      this.answerResult.style.color = "lime";
-      this.handleCorrectAnswer(filename);
-    } else {
-      this.answerResult.textContent = "不正解です。";
-      this.answerResult.style.color = "red";
-    }
-  }
-
-  handleCorrectAnswer(filename) {
-    // ✅ panel3 正解で .panel 要素を表示
-    if (filename === "panel3.png") {
-      this.stageUnlocked[0] = true;
-      this.stageUnlocked[1] = true;
-      this.updateStageButtonStates();
-
-      // 🔽 .panel クラスを表示する
-      document.querySelectorAll(".panel").forEach(panel => {
-        panel.classList.remove("hidden-panel");
-      });
-
-      // 🔽 ガイド再描画（もし関数が定義されていれば）
-      if (window.drawAllGuides) {
-        window.drawAllGuides();
-      }
-    }
-
-    // ▼ 他の解答によるステージ解放（必要に応じて調整）
-    if (filename === "panel1.png") {
-      this.stageUnlocked[0] = true;
-      this.updateStageButtonStates();
-    }
-    if (filename === "panel2.png") {
-      this.stageUnlocked[1] = true;
-      this.updateStageButtonStates();
-    }
-    if (filename === "stage1.png") {
-      this.stageUnlocked[1] = true;
-      this.updateStageButtonStates();
-    }
-    if (filename === "stage2.png") {
-      this.stageUnlocked[2] = true;
-      this.updateStageButtonStates();
-    }
-  }
-
-  showPanel3State() {
-    this.imageElement.src = this.panelImages[2];
-    this.answerArea.style.display = "flex";
-    this.answerInput.value = "";
-    this.answerResult.textContent = "";
-    this.stageButtons.style.display = "flex";
-  }
-
-  showStage(idx) {
-    this.imageElement.src = this.stageImages[idx];
-    this.answerArea.style.display = "flex";
-    this.answerInput.value = "";
-    this.answerResult.textContent = "";
-  }
-
-  unlockStagesAfterPanel3() {
-    this.stageUnlocked[0] = true;
-    this.stageUnlocked[1] = true;
-    this.updateStageButtonStates();
-  }
-
-  hideAllPanels() {
-    document.querySelectorAll(".panel").forEach(panel => {
-      panel.classList.add("hidden-panel");
-    });
-  }
-}
+  </script>
+  <div id="pageMemo">210970</div>
+</body>
+</html>
