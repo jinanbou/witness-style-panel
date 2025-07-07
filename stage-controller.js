@@ -14,10 +14,13 @@ export class StageController {
     this.backToPanel3Btn = document.getElementById("backToPanel3");
     this.imageElement = document.getElementById("panelImage");
 
+    this.panels = Array.from(document.querySelectorAll('.panel')); // パネル要素取得
+
     this.init();
   }
 
   init() {
+    this.hidePanels();              // 最初は3つのパネル非表示にする
     this.updateStageButtonStates();
     this.bindEvents();
     this.showPanel3State();
@@ -79,30 +82,32 @@ export class StageController {
   }
 
   handleCorrectAnswer(filename) {
-    // パネル3正解でパネル1,2解放
+    let changed = false;
     if (filename === "panel3.png") {
+      if (!this.stageUnlocked[0] || !this.stageUnlocked[1]) {
+        this.stageUnlocked[0] = true;
+        this.stageUnlocked[1] = true;
+        changed = true;
+      }
+      this.showPanels(); // panel3正解時にパネル3つを表示
+    }
+    if (filename === "panel1.png" && !this.stageUnlocked[0]) {
       this.stageUnlocked[0] = true;
+      changed = true;
+    }
+    if (filename === "panel2.png" && !this.stageUnlocked[1]) {
       this.stageUnlocked[1] = true;
-      this.updateStageButtonStates();
-      // 他のUI操作あればここで
+      changed = true;
     }
-    // パネル1,2やステージ解答に応じてロック解除も可
-    if (filename === "panel1.png") {
-      this.stageUnlocked[0] = true;
-      this.updateStageButtonStates();
-    }
-    if (filename === "panel2.png") {
+    if (filename === "stage1.png" && !this.stageUnlocked[1]) {
       this.stageUnlocked[1] = true;
-      this.updateStageButtonStates();
+      changed = true;
     }
-    if (filename === "stage1.png") {
-      this.stageUnlocked[1] = true;
-      this.updateStageButtonStates();
-    }
-    if (filename === "stage2.png") {
+    if (filename === "stage2.png" && !this.stageUnlocked[2]) {
       this.stageUnlocked[2] = true;
-      this.updateStageButtonStates();
+      changed = true;
     }
+    if (changed) this.updateStageButtonStates();
   }
 
   showPanel3State() {
@@ -124,5 +129,17 @@ export class StageController {
     this.stageUnlocked[0] = true;
     this.stageUnlocked[1] = true;
     this.updateStageButtonStates();
+  }
+
+  showPanels() {
+    this.panels.forEach(panel => {
+      panel.style.display = 'flex'; // 元のdisplayに合わせて
+    });
+  }
+
+  hidePanels() {
+    this.panels.forEach(panel => {
+      panel.style.display = 'none';
+    });
   }
 }
