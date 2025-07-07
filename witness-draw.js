@@ -128,19 +128,22 @@ function showStageImage(index) {
 
 panels.forEach(panel => {
   panel.canvas.addEventListener('pointerdown', e => {
-    if (panel.panel.classList.contains('locked-panel')) return;
-    activePanel = panel;
-    isDrawing = true;
+  if (panel.panel.classList.contains('locked-panel')) return;
+  activePanel = panel;
+  isDrawing = true;
 
-    drawAllGuides();
+  lastDrawnPanelIndex = panel.index; // 🔵 現在のパネルを一時的に水色にする
 
-    const rect = panel.canvas.getBoundingClientRect();
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
-    const startPoint = panel.guidePoints[0];
-    panel.path = [startPoint];
-    drawLine(panel);
-  });
+  drawAllGuides();
+
+  const rect = panel.canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left;
+  const sy = e.clientY - rect.top;
+  const startPoint = panel.guidePoints[0];
+  panel.path = [startPoint];
+  drawLine(panel);
+});
+
 
   panel.canvas.addEventListener('pointermove', e => {
     if (!isDrawing || activePanel !== panel) return;
