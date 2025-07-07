@@ -29,13 +29,12 @@ document.addEventListener("DOMContentLoaded", () => {
   stageButtons.addEventListener("click", (e) => {
     if (e.target.tagName === "BUTTON") {
       if (e.target === backToPanel3Btn) {
-        // 「ステージセレクトに戻る」ボタン押下時
-        imageElement.src = "panel3.png"; // パネル3画像に戻す
-        // ボタンは消さず表示し続ける
-      } else {
+        imageElement.src = "panel3.png";
+          drawAllGuides(); // 🔵 追加：青い丸を再表示するため（witness-draw.jsにexport必要）
+        } else {
         const idx = parseInt(e.target.dataset.index);
         if (!isNaN(idx)) {
-          showStageImage(idx);
+        showStageImage(idx);
         }
       }
     }
