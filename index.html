@@ -50,8 +50,14 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    #stageButtons button:hover {
+    #stageButtons button:hover:enabled {
       background-color: #666;
+    }
+    #stageButtons button:disabled {
+      background-color: #222;
+      color: #888;
+      cursor: not-allowed;
+      opacity: 0.5;
     }
     .container {
       display: flex;
@@ -85,7 +91,7 @@
       font-size: 1.4em;
     }
     #answerInput {
-      padding: 0.4em;
+      padding: 0.4em 0.4em;
       font-size: 1em;
       border-radius: 8px;
       border: 2px solid #ccc;
@@ -93,7 +99,7 @@
       max-width: 80vw;
     }
     #answerButton {
-      padding: 0.4em;
+      padding: 0.4em 0.4em;
       font-size: 1em;
       border: none;
       border-radius: 8px;
@@ -108,126 +114,49 @@
     #answerResult {
       font-size: 1em;
       font-weight: bold;
-      padding: 0.25em;
+      padding: 0.25em 0.25em;
       border-radius: 8px;
       text-align: center;
-      color: white;
+    }
+    #answerResult.correct {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 2px solid #fff;
+    }
+    #answerResult.incorrect {
+      color: #fff;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 2px solid #fff;
     }
   </style>
 </head>
 <body>
+
   <h1>Witness Panels</h1>
+
   <div id="image-viewer">
     <img id="panelImage" src="" alt="Panel image" />
   </div>
+
   <div id="stageButtons">
     <button data-index="0">ステージ1</button>
     <button data-index="1">ステージ2</button>
     <button data-index="2">ステージ3</button>
     <button id="backToPanel3" style="background-color: #666; margin-left: 20px;">ステージセレクトに戻る</button>
   </div>
+
   <div id="answerArea">
     <input type="text" id="answerInput" placeholder="解答を入力..." />
     <button id="answerButton">解答する</button>
     <p id="answerResult"></p>
   </div>
+
   <div class="container">
     <div class="panel"><canvas></canvas></div>
     <div class="panel locked-panel"><canvas></canvas></div>
     <div class="panel"><canvas></canvas></div>
   </div>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const panelImages = ["panel1.png", "panel2.png", "panel3.png"];
-      const stageImages = ["stage1.png", "stage2.png", "stage3.png"];
-      const correctAnswers = {
-        "panel1.png": "visits",
-        "panel2.png": "comment",
-        "panel3.png": "helps",
-        "stage1.png": "burglary",
-        "stage2.png": "alley",
-        "stage3.png": "fetching"
-      };
-      const stageCleared = {
-        "stage1.png": false,
-        "stage2.png": false,
-        "stage3.png": false
-      };
 
-      const imageElement = document.getElementById("panelImage");
-      const stageButtons = document.getElementById("stageButtons");
-      const answerArea = document.getElementById("answerArea");
-      const answerInput = document.getElementById("answerInput");
-      const answerButton = document.getElementById("answerButton");
-      const answerResult = document.getElementById("answerResult");
-
-      function showStageImage(index) {
-        const src = stageImages[index];
-        imageElement.src = src;
-        updateAnswerArea(src);
-      }
-
-      function updateAnswerArea(src) {
-        const filename = src.split("/").pop();
-        if (correctAnswers[filename]) {
-          answerArea.style.display = "flex";
-          answerInput.value = "";
-          answerResult.textContent = "";
-        } else {
-          answerArea.style.display = "none";
-        }
-      }
-
-      answerButton.addEventListener("click", () => {
-        const filename = imageElement.src.split("/").pop();
-        const userAnswer = answerInput.value.trim().toLowerCase();
-        const correct = correctAnswers[filename]?.toLowerCase();
-
-        if (!userAnswer) {
-          answerResult.textContent = "解答を入力してください。";
-          answerResult.style.color = "white";
-          return;
-        }
-
-        if (userAnswer === correct) {
-          answerResult.textContent = "正解です！🎉";
-          answerResult.style.color = "#0f0";
-
-          if (filename === "panel1.png") {
-            document.querySelectorAll(".panel")[1].classList.remove("locked-panel");
-          } else if (filename === "panel2.png") {
-            document.querySelectorAll(".panel")[2].classList.remove("locked-panel");
-          }
-
-          if (filename.startsWith("stage")) {
-            stageCleared[filename] = true;
-          }
-        } else {
-          answerResult.textContent = "不正解です。";
-          answerResult.style.color = "red";
-        }
-      });
-
-      stageButtons.addEventListener("click", e => {
-        if (e.target.tagName === "BUTTON") {
-          const idx = parseInt(e.target.dataset.index);
-          const targetStage = stageImages[idx];
-          if (targetStage && idx > 0) {
-            const prev = stageImages[idx - 1];
-            if (!stageCleared[prev]) {
-              alert(`ステージ${idx}をクリアしてから進んでください。`);
-              return;
-            }
-          }
-          showStageImage(idx);
-        }
-      });
-
-      window.addEventListener("panel3-drawn", () => {
-        stageButtons.style.display = "flex";
-      });
-    });
-  </script>
   <script src="witness-draw.js"></script>
 </body>
 </html>
