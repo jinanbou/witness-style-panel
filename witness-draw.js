@@ -26,7 +26,7 @@ const panels = Array.from(document.querySelectorAll('.panel')).map((panel, i) =>
 
 let activePanel = null;
 let isDrawing = false;
-let lastDrawnPanelIndex = -1; // 🔵 最後に描かれたパネル
+let lastDrawnPanelIndex = -1;
 
 const panelImages = [
   "panel1.png",
@@ -126,34 +126,23 @@ function showStageImage(index) {
   imageElement.src = stageImages[index];
 }
 
+// パネルごとのイベント設定
 panels.forEach(panel => {
-  panel.canvas.addEventListener('pointerup', () => {
-  if (!isDrawing || activePanel !== panel) return;
-  isDrawing = false;
-  const last = panel.path[panel.path.length - 1];
-  if (isAtEnd(last, panel.guidePoints)) {
-    panel.drawn = true;
+  panel.canvas.addEventListener('pointerdown', e => {
+    if (panel.panel.classList.contains('locked-panel')) return;
+    activePanel = panel;
+    isDrawing = true;
     lastDrawnPanelIndex = panel.index;
-    drawLine(panel);
-    drawAllGuides(); // 🔵 追加：青い丸更新のため
-    imageElement.src = panelImages[panel.index];
+    drawAllGuides();
 
-    if (panel.index === 2) {
-      console.log("panel3 drawn event fired");
-      window.dispatchEvent(new Event("panel3-drawn"));
-    } else {
-      console.log("non-panel3 drawn, hiding buttons");
-      hideStageButtons();
-    }
-  } else {
-    panel.path = [];
-    panel.drawn = false;
-    lastDrawnPanelIndex = -1;
-    drawAllGuides(); // 🔵 追加：他のパネルも白丸に戻す
-    imageElement.src = "";
-    hideStageButtons();
-  }
-});
+    const rect = panel.canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const startPoint = panel.guidePoints[0];
+    panel.path = [startPoint];
+    drawLine(panel);
+  });
+
   panel.canvas.addEventListener('pointermove', e => {
     if (!isDrawing || activePanel !== panel) return;
     const rect = panel.canvas.getBoundingClientRect();
@@ -175,6 +164,7 @@ panels.forEach(panel => {
       panel.drawn = true;
       lastDrawnPanelIndex = panel.index;
       drawLine(panel);
+      drawAllGuides(); // 丸の色更新
       imageElement.src = panelImages[panel.index];
 
       if (panel.index === 2) {
@@ -188,7 +178,7 @@ panels.forEach(panel => {
       panel.path = [];
       panel.drawn = false;
       lastDrawnPanelIndex = -1;
-      drawGuide(panel);
+      drawAllGuides(); // 白丸に戻す
       imageElement.src = "";
       hideStageButtons();
     }
@@ -211,4 +201,5 @@ window.addEventListener("panel3-drawn", () => {
   showStageButtons();
 });
 
+// 他スクリプトから drawAllGuides を使えるようにする
 window.drawAllGuides = drawAllGuides;
