@@ -1,3 +1,5 @@
+//コードはAI製です
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -367,6 +369,14 @@
       panels[0].panel.classList.remove("locked-panel");
       clearCanvas(panels[0]);
       drawGuide(panels[0]);
+      updateStageButtonStates();
+    }
+
+    // panel3 正解時：パネル全表示 + stage1,2解放 + 見た目更新
+    if (filename === "panel3.png") {
+      container.style.visibility = "visible";
+      stageUnlocked[1] = true;
+      stageUnlocked[2] = true;
       updateStageButtonStates();
     }
 
