@@ -176,8 +176,8 @@
       "images/stage3.png",
     ];
     const correctAnswers = {
-      "panel1.png": "visits",
-      "panel2.png": "comment",
+      "panel1.png": "comment",
+      "panel2.png": "visits",
       "panel3.png": "helps",
       "stage1.png": "burglary",
       "stage2.png": "alley",
@@ -362,20 +362,20 @@
     answerResult.style.color = "lime";
 
     // panel1 正解時：panel2解放 + 見た目も更新
-    if (filename === "panel1.png") {
+    if (filename === "panel2.png") {
   stageUnlocked[0] = true;
   stageUnlocked[1] = true;
 
   // panel2 をアンロックしてガイドを描画
-  panels[1].panel.classList.remove("locked-panel");
-  clearCanvas(panels[1]);          // キャンバスをクリア
-  drawGuide(panels[1]);            // ガイドを描画
+  panels[2].panel.classList.remove("locked-panel");
+  clearCanvas(panels[2]);          // キャンバスをクリア
+  drawGuide(panels[2]);            // ガイドを描画
 
   updateStageButtonStates();
 }
 
     // panel2 正解時：ステージ2解放 + 見た目更新
-    if (filename === "panel2.png") {
+    if (filename === "panel1.png") {
       stageUnlocked[1] = true;
       updateStageButtonStates();
     }
