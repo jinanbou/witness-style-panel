@@ -361,30 +361,12 @@
     answerResult.textContent = "正解です！🎉";
     answerResult.style.color = "lime";
 
-    // panel1 正解時：panel2解放 + 見た目も更新
-    if (filename === "panel2.png") {
-  stageUnlocked[0] = true;
-  stageUnlocked[1] = true;
-
-  // panel2 をアンロックしてガイドを描画
-  panels[2].panel.classList.remove("locked-panel");
-  clearCanvas(panels[2]);          // キャンバスをクリア
-  drawGuide(panels[2]);            // ガイドを描画
-
-  updateStageButtonStates();
-}
-
     // panel2 正解時：ステージ2解放 + 見た目更新
-    if (filename === "panel1.png") {
-      stageUnlocked[1] = true;
-      updateStageButtonStates();
-    }
-
-    // panel3 正解時：パネル全表示 + stage1,2解放 + 見た目更新
-    if (filename === "panel3.png") {
-      container.style.visibility = "visible";
+    if (filename === "panel2.png") {
       stageUnlocked[0] = true;
-      stageUnlocked[1] = true;
+      panels[0].panel.classList.remove("locked-panel");
+      clearCanvas(panels[0]);
+      drawGuide(panels[0]);
       updateStageButtonStates();
     }
 
